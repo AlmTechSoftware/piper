@@ -2,13 +2,13 @@
 
 ytdl=yt-dlp
 
-out=test-data
+out=tests
 
 fetch() {
 	mkdir -p $out
 	while read src; do
 		$ytdl $(echo $src | awk '{print $1}') -o $out/$(echo $src | awk '{print $2}')
-	done <sources
+	done <sources.list
 }
 
 fetch
