@@ -1,34 +1,27 @@
-# Chalk Prototype 1
+# Piper
 
-## Usage
-`./app.py (input video path: path)`
+Microservices & algorithm for CHALK
 
-## Algorithm
+## Basic overview
 
-### (-1) Frame Detection
-Detect the frame of the board and extract its vertices.
+Here is the basic overview of how the pipeline algorithm works:
 
-### (A) Canvas Extraction
-Given the vertices of the board, do a anti-perspective transform on
-the image to extract the canvas of the board.
+- Canvas Detection Network (**CDN**)
+- Canvas rotation & angle demorpher (**CRAD**) ()
+- Convex Hull & Canvas Cleanup (basic contrast & convex hull algo.)
+- Contour Extraction Model (neural net) (**CEM**)
+- Skeleton Generator (**SG**)
+- Vectorizer
+- (Color Remap)
 
-### (AA) Remove Humans
-Remove humans.
+## Platform
+Should be able to run on a modren GNU/Linux system inside of a container (docker version >= 24.0.2). 
 
-### (B) Contour 
-Given the canvas, calculate the background color and extract the contours of
-the contents of the canvas.
+## Processing Format
 
-### (C) Skeleton 
-Given the contours: find the medial axis for each in a short given interval
-proportional to the inputted resolution.
+The algorithm should follow a "microservice" structure where load-balancing is implemented. Each worker should be able to process multiple
+frames at a time for different people but a load-balancer should redirect work to other new workers if overloaded.
 
-### (D) Bezier
-Given the skelton lines. Perform and create bezier curves and render
-the contents on a new frame.
+## The Goal
 
-### (EEE) Cleanup
-Remove any unwanted results using a classifier (clutter removal)
-
-## License
-Copyright 2023 - Elias Almqvist
+The algorithm should work and run on a reasonable CPU and each "frame" should take at most 150ms to process. The algorithm should follow a "best-effort" approach where **_minor_** artifacts are considered okay
