@@ -1,0 +1,18 @@
+syntax = "proto3"
+
+package stream;
+option go_package = "piper";
+
+service Stream {
+	rpc StreamFrames(FrameRequest) returns (stream FrameResponse) {}
+}
+
+// Input frame struct
+message FrameRequest {
+	// Stuff
+}
+
+// Output frame struct
+message FrameResponse {
+	//
+}
