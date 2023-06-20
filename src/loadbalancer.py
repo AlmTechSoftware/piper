@@ -36,7 +36,6 @@ class LoadBalancer:
         self.output_pipes = [mp.Pipe() for _ in range(num_workers)]
 
         self.__workers = []  # List to store worker processes
-
         # Start the worker processes
         for i in range(num_workers):
             # Create a worker process, passing the input queue and output pipe as arguments
@@ -46,6 +45,7 @@ class LoadBalancer:
             worker_process.start()  # Start the worker process
             self.__workers.append(worker_process)  # Add the worker process to the list
 
+    def flush(self):
         self.tasks = []  # List of tasks to be processed
 
         # Distribute tasks to the workers
@@ -53,7 +53,7 @@ class LoadBalancer:
             self.input_queue.put(task)  # Put each task into the input queue
 
         # Signal the worker processes to terminate
-        for _ in range(num_workers):
+        for _ in range(len(self.__workers)):
             self.input_queue.put(
                 None
             )  # Add a None task to the input queue for each worker process
@@ -61,7 +61,7 @@ class LoadBalancer:
         results = []  # List to store the results
 
         # Collect results from the worker processes
-        for i in range(num_workers):
+        for i in range(len(self.__workers)):
             result = self.output_pipes[i][
                 0
             ].recv()  # Receive the result from the output pipe
