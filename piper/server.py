@@ -2,12 +2,16 @@ import asyncio
 from websockets.exceptions import ConnectionClosed
 from websockets.server import WebSocketServerProtocol, serve
 from typing import Any
-from loadbalancer import LoadBalancer
+from .loadbalancer import LoadBalancer
 
 
 class Server:
-    def __init__(self, load_balancer: LoadBalancer) -> None:
+    def __init__(
+        self, load_balancer: LoadBalancer, host: str = "0.0.0.0", port: int = 4489
+    ) -> None:
         self.load_balancer = load_balancer
+        self.host = host
+        self.port = port
 
     async def handle_connection(
         self, websocket: WebSocketServerProtocol, _path: str
@@ -27,17 +31,15 @@ class Server:
             pass
 
     def process_received_data(self, data: str) -> Any:
-        # Process input data here to np.array and feed into workers etc
+        # TODO: Process input data here to np.array and feed into workers etc
         return data
 
     def start_websocket_server(self) -> None:
-        # WebSocket server configuration
-        host = "0.0.0.0"
-        port = 8000
-
         # Start the WebSocket server
-        start_server = ws.serve(
-            lambda websocket, path: self.handle_connection(websocket, path), host, port
+        start_server = serve(
+            lambda websocket, path: self.handle_connection(websocket, path),
+            self.host,
+            self.port,
         )
 
         # Event loop for the WebSocket server
