@@ -1,2 +1,7 @@
+import logging as log
+
+from cv_entrypoint import open_cv_frame_piper
+
 if __name__ == "__main__":
-    print("Init worker")
+    log.info("PiperWorker starting...")
+    open_cv_frame_piper()
