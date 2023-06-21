@@ -1,9 +1,6 @@
 #!/bin/sh
 
 name=piper-worker
-path=.
+path=./src
 
-
-nixpacks build $path \
-			--name $name \
-			--start-cmd "python -m piper"
+nixpacks build $path --name $name 
