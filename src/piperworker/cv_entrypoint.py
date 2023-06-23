@@ -1,6 +1,9 @@
 import os
 import numpy as np
+import h264decoder
 from multiprocessing import Process, Pipe
+
+decoder = h264decoder.H264Decoder()
 
 
 def frame_processing(child_conn):
