@@ -6,6 +6,7 @@ import (
 	"net"
 	"os"
 	// "google.golang.org/grpc"
+	"./server"
 )
 
 // type videoStreamServer struct {
