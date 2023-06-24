@@ -1,12 +1,11 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net"
 	"os"
+	"sync"
 	// "google.golang.org/grpc"
-	"./server"
 )
 
 // type videoStreamServer struct {
@@ -15,13 +14,41 @@ import (
 
 func main() {
 	var port = os.Getenv("PIPER_PORT")
-
-	lis, err := net.Listen("tcp", ":"+port)
-	if err != nil {
-		log.Fatalf("Failed to listen: %v", err)
+	if port == "" {
+		port = "4242"
 	}
 
-	fmt.Printf("lis: %v\n", lis)
+	// Start a TCP server to accept client connections
+	lis, err := net.Listen("tcp", ":"+port)
+
+	if err != nil {
+		log.Println("Error starting server:", err)
+		return
+	}
+
+	defer lis.Close()
+
+	log.Printf("Piper Server running on port %s", port)
+	log.Println("Waiting for connections...")
+
+	var wg sync.WaitGroup
+
+	for {
+		// accept a new client connection
+		conn, err := lis.Accept()
+		if err != nil {
+			log.Println("Error accepting client connection:", err)
+			continue
+		}
+
+		// Handle the client connection asynchronously
+		wg.Add(1)
+		go handleClient(conn, &wg)
+	}
+
+	// NOTE: Will never reach but good to have I guess?
+	wg.Wait()
+	log.Println("Server shutting down...")
 
 	// // Create gRPC server
 	// grpcServer := grpc.NewServer()

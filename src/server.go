@@ -1,18 +1,18 @@
 package main
 
 import (
-	"fmt"
 	"io"
+	"log"
 	"net"
 	"sync"
 )
 
 func handleClient(conn net.Conn, wg *sync.WaitGroup) {
-	fmt.Println("New client connected:", conn.RemoteAddr().String())
+	log.Println("New client connected:", conn.RemoteAddr().String())
 	defer func() {
 		conn.Close()
 		wg.Done()
-		fmt.Println("Client disconnected:", conn.RemoteAddr().String())
+		log.Println("Client disconnected:", conn.RemoteAddr().String())
 	}()
 
 	// Create a buffer to hold the incoming frame data
@@ -25,12 +25,12 @@ func handleClient(conn net.Conn, wg *sync.WaitGroup) {
 			if err == io.EOF {
 				return
 			}
-			fmt.Println("Error reading from client:", err)
+			log.Println("Error reading from client:", err)
 			return
 		}
 
-		// Process the received frame data here
+		// TODO: Process the received frame data here
 		frameData := buffer[:n]
-		fmt.Printf("Received frame from %s: %v\n", conn.RemoteAddr().String(), frameData)
+		log.Printf("Received frame from %s: %v\n", conn.RemoteAddr().String(), frameData)
 	}
 }
