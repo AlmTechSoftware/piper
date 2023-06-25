@@ -24,6 +24,9 @@ func startWorkerProcs(numWorkers int, frameChan channel) ([]*os.Process, []strin
 		// Remove the socket path if exist
 		os.Remove(socket)
 
+		// Create the socket file
+		os.Create(socket) // FIXME: add actual unix perms etc.
+
 		// Start the PiperWorker
 		worker := exec.Command("python", "-m", "piperworker", socket)
 		worker.Stdout = os.Stdout
