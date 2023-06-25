@@ -8,74 +8,50 @@ import (
 	"os/exec"
 	"strconv"
 	"sync"
-	"bufio"
+	// "bufio"
 	// "google.golang.org/grpc"
 )
 
 type channel = chan []byte
 
-func startWorkerProcs(numWorkers int, frameChan channel, resultChan channel) []*exec.Cmd {
-	workers := make([]*exec.Cmd, numWorkers)
+func startWorkerProcs(numWorkers int, frameChan channel) ([]*os.Process, []string, error) {
+	workers := make([]*os.Process, numWorkers)
+	socketPaths := make([]string, numWorkers)
+
 	for i := 0; i < numWorkers; i++ {
-		cmd := exec.Command("python", "worker.py") // Change the command and arguments accordingly if needed
-		cmd.Stdin = os.Stdin
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
+		socket := fmt.Sprintf("/tmp/piperworker_%d.socket", i)
+		socketPaths[i] = socket
 
-		// Connect the worker process' standard input to the frame data channel
-		stdin, err := cmd.StdinPipe()
-		if err != nil {
-			log.Println("Error creating stdin pipe for worker process:", err)
-			return nil
-		}
-		go func() {
-			for frameData := range frameChan {
-				_, err := stdin.Write(frameData)
-				if err != nil {
-					log.Println("Error writing to worker process:", err)
-					return
-				}
-			}
-		}()
+		// Remove the socket path if exist
+		os.Remove(socket)
 
-		// Connect the worker process' standard output to the result channel
-		stdout, err := cmd.StdoutPipe()
-		if err != nil {
-			log.Println("Error creating stdout pipe for worker process:", err)
-			return nil
-		}
-		go func() {
-			reader := bufio.NewReader(stdout)
-			for {
-				resultData, err := reader.ReadBytes('\n')
-				if err != nil {
-					log.Println("Error reading result data from worker process:", err)
-					return
-				}
-				resultChan <- resultData
-			}
-		}()
+		// Start the PiperWorker
+		worker := exec.Command("python", "-m", "piperworker", socket)
+		worker.Stdout = os.Stdout
+		worker.Stderr = os.Stderr
 
-		// Start the worker process
-		err = cmd.Start()
+		err := worker.Start()
 		if err != nil {
-			log.Println("Error starting worker process:", err)
-			return nil
+			log.Fatalln("Failed to start worker with error:", err)
+			return nil, nil, err
 		}
 
-		workers[i] = cmd
+		workers[i] = worker.Process
 	}
 
-	return workers
+	return workers, socketPaths, nil
 }
 
 func main() {
 	// Parse .env stuff
+
+	// PORT
 	var port = os.Getenv("PORT")
 	if port == "" {
 		port = "4242"
 	}
 
+	// WORKER COUNT
 	var workerCountStr = os.Getenv("WORKER_COUNT")
 	var workerCount, err = strconv.Atoi(workerCountStr)
 	if err != nil {
@@ -92,24 +68,29 @@ func main() {
 
 	defer lis.Close()
 
-	// Start the workers
-	var wg sync.WaitGroup
+	// Start the worker processes
 	frameChan := make(chan []byte)
-	workers := startWorkerProcs(workerCount, frameChan)
-
-	if workers == nil {
-		log.Fatalln("Failed to start workers.")
+	bufferSize := 2
+	workers, socketPaths, err := startWorkerProcesses(4, frameChan)
+	if err != nil {
+		return
 	}
-
 	defer func() {
-		for _, wp := range workers {
-			wp.Process.Kill()
+		for _, wp := range workerProcesses {
+			wp.Signal(syscall.SIGTERM)
+			wp.Wait()
+		}
+
+		// Remove the worker socket files
+		for _, path := range socketPaths {
+			os.Remove(path)
 		}
 	}()
 
 	log.Printf("Piper Server running on port %s", port)
 	log.Println("Waiting for connections...")
 
+	var wg sync.WaitGroup
 	for {
 		// accept a new client connection
 		conn, err := lis.Accept()
