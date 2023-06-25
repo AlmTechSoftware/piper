@@ -9,8 +9,6 @@ import (
 	"strconv"
 	"sync"
 	"syscall"
-	// "bufio"
-	// "google.golang.org/grpc"
 )
 
 type channel = chan []byte
@@ -71,11 +69,12 @@ func main() {
 
 	// Start the worker processes
 	frameChan := make(chan []byte)
-	bufferSize := 2
+
 	workers, socketPaths, err := startWorkerProcs(numWorkers, frameChan)
 	if err != nil {
 		return
 	}
+
 	defer func() {
 		for _, wp := range workers {
 			wp.Signal(syscall.SIGTERM)

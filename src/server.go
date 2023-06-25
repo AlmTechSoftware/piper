@@ -7,7 +7,7 @@ import (
 	"sync"
 )
 
-func handleClient(conn net.Conn, wg *sync.WaitGroup, frameChan channel, resultChan channel) {
+func handleClient(conn net.Conn, wg *sync.WaitGroup, frameChan channel) {
 	log.Println("New client connected:", conn.RemoteAddr().String())
 	defer func() {
 		conn.Close()
@@ -23,10 +23,10 @@ func handleClient(conn net.Conn, wg *sync.WaitGroup, frameChan channel, resultCh
 		n, err := conn.Read(buffer)
 		if err != nil {
 			if err == io.EOF {
-				return
+				continue
 			}
 			log.Println("Error reading from client:", err)
-			return
+			continue
 		}
 
 		// Send to PiperWorker for processing
@@ -35,7 +35,7 @@ func handleClient(conn net.Conn, wg *sync.WaitGroup, frameChan channel, resultCh
 		log.Printf("Received frame from %s: %v\n", conn.RemoteAddr().String(), frameData)
 
 		// Recieve data and return to client
-		newFrameData := <-resultChan
+		newFrameData := <-frameChan
 
 		// Return new proc data to client
 		_, err = conn.Write(newFrameData)
