@@ -1,21 +1,64 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net"
 	"os"
+	"os/exec"
+	"strconv"
 	"sync"
 	// "google.golang.org/grpc"
 )
 
-// type videoStreamServer struct {
-// 	// Implement your gRPC service methods here
-// }
+func startWorkers(numWorkers int, frameChan chan []byte) []*exec.Cmd {
+	workers := make([]*exec.Cmd, numWorkers)
+	for i := 0; i < numWorkers; i++ {
+		cmd := exec.Command("python", "worker.py") // Change the command and arguments accordingly if needed
+		cmd.Stdin = os.Stdin
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+
+		// Create a named pipe (FIFO) for each worker
+		fifoName := fmt.Sprintf("fifo%d", i)
+		err := exec.Command("mkfifo", fifoName).Run()
+		if err != nil {
+			log.Println("Error creating named pipe:", err)
+			return nil
+		}
+
+		// Connect the named pipe to the worker process' standard input
+		fifo, err := os.OpenFile(fifoName, os.O_WRONLY, os.ModeNamedPipe)
+		if err != nil {
+			log.Println("Error opening named pipe:", err)
+			return nil
+		}
+		cmd.ExtraFiles = append(cmd.ExtraFiles, fifo)
+
+		workers[i] = cmd
+
+		go func() {
+			err := cmd.Run()
+			if err != nil {
+				log.Println("Worker process exited with error:", err)
+			}
+		}()
+	}
+
+	return workers
+}
 
 func main() {
-	var port = os.Getenv("PIPER_PORT")
+	// Parse .env stuff
+	var port = os.Getenv("PORT")
 	if port == "" {
 		port = "4242"
+	}
+
+	var workerCountStr = os.Getenv("WORKER_COUNT")
+	var workerCount, err = strconv.Atoi(workerCountStr)
+	if err != nil {
+		log.Fatalln("Unable to read worker count from environment!")
 	}
 
 	// Start a TCP server to accept client connections
