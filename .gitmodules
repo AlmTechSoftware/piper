@@ -1,3 +1,3 @@
-[submodule "services/proto1"]
-	path = services/proto1
-	url = git@github.com:AlmTechSoftware/chalk-proto1.git
+[submodule "lib/h264decoder"]
+	path = lib/h264decoder
+	url = git@github.com:AlmTechSoftware/h264decoder.git

@@ -15,12 +15,15 @@ Here is the basic overview of how the pipeline algorithm works:
 - (Color Remap)
 
 ## Platform
+
 Should be able to run on a modren GNU/Linux system inside of a container (docker version >= 24.0.2). 
 
 ## Processing Format
 
 The algorithm should follow a "microservice" structure where load-balancing is implemented. Each worker should be able to process multiple
 frames at a time for different people but a load-balancer should redirect work to other new workers if overloaded.
+
+![MS overview](/img/overview.png)
 
 ## The Goal
 
