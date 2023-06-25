@@ -11,26 +11,28 @@ import (
 	// "google.golang.org/grpc"
 )
 
-func startWorkers(numWorkers int, frameChan chan []byte) []*exec.Cmd {
+type channel = chan []byte
+
+func startWorkerProcs(numWorkers int, frameChan channel) []*exec.Cmd {
 	workers := make([]*exec.Cmd, numWorkers)
 	for i := 0; i < numWorkers; i++ {
-		cmd := exec.Command("python", "worker.py") // Change the command and arguments accordingly if needed
+		cmd := exec.Command("python", "-m", "piperworker") // Change the command and arguments accordingly if needed
 		cmd.Stdin = os.Stdin
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 
 		// Create a named pipe (FIFO) for each worker
-		fifoName := fmt.Sprintf("fifo%d", i)
-		err := exec.Command("mkfifo", fifoName).Run()
+		workerName := fmt.Sprintf("piperworker@%d", i)
+		err := exec.Command("mkfifo", workerName).Run()
 		if err != nil {
-			log.Println("Error creating named pipe:", err)
+			log.Fatalln("Error creating named pipe:", err)
 			return nil
 		}
 
 		// Connect the named pipe to the worker process' standard input
-		fifo, err := os.OpenFile(fifoName, os.O_WRONLY, os.ModeNamedPipe)
+		fifo, err := os.OpenFile(workerName, os.O_WRONLY, os.ModeNamedPipe)
 		if err != nil {
-			log.Println("Error opening named pipe:", err)
+			log.Fatalln("Error opening named pipe:", err)
 			return nil
 		}
 		cmd.ExtraFiles = append(cmd.ExtraFiles, fifo)
@@ -71,10 +73,23 @@ func main() {
 
 	defer lis.Close()
 
+	// Start the workers
+	var wg sync.WaitGroup
+	frameChan := make(chan []byte)
+	workers := startWorkerProcs(workerCount, frameChan)
+
+	if workers == nil {
+		log.Fatalln("Failed to start workers.")
+	}
+
+	defer func() {
+		for _, wp := range workers {
+			wp.Process.Kill()
+		}
+	}()
+
 	log.Printf("Piper Server running on port %s", port)
 	log.Println("Waiting for connections...")
-
-	var wg sync.WaitGroup
 
 	for {
 		// accept a new client connection
@@ -86,7 +101,7 @@ func main() {
 
 		// Handle the client connection asynchronously
 		wg.Add(1)
-		go handleClient(conn, &wg)
+		go handleClient(conn, &wg, frameChan)
 	}
 
 	// NOTE: Will never reach but good to have I guess?
