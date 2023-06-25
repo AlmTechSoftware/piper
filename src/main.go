@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"strconv"
 	"sync"
+	"syscall"
 	// "bufio"
 	// "google.golang.org/grpc"
 )
@@ -52,8 +53,8 @@ func main() {
 	}
 
 	// WORKER COUNT
-	var workerCountStr = os.Getenv("WORKER_COUNT")
-	var workerCount, err = strconv.Atoi(workerCountStr)
+	var numWorkersStr = os.Getenv("WORKER_COUNT")
+	var numWorkers, err = strconv.Atoi(numWorkersStr)
 	if err != nil {
 		log.Fatalln("Unable to read worker count from environment!")
 	}
@@ -71,12 +72,12 @@ func main() {
 	// Start the worker processes
 	frameChan := make(chan []byte)
 	bufferSize := 2
-	workers, socketPaths, err := startWorkerProcesses(4, frameChan)
+	workers, socketPaths, err := startWorkerProcs(numWorkers, frameChan)
 	if err != nil {
 		return
 	}
 	defer func() {
-		for _, wp := range workerProcesses {
+		for _, wp := range workers {
 			wp.Signal(syscall.SIGTERM)
 			wp.Wait()
 		}
@@ -107,17 +108,4 @@ func main() {
 	// NOTE: Will never reach but good to have I guess?
 	wg.Wait()
 	log.Println("Server shutting down...")
-
-	// // Create gRPC server
-	// grpcServer := grpc.NewServer()
-	//
-	// // Register your gRPC service
-	// videoStreamSvc := &videoStreamServer{}
-	// RegisterVideoStreamServiceServer(grpcServer, videoStreamSvc)
-
-	// // Start gRPC server
-	// log.Println("Starting gRPC server...")
-	// if err := grpcServer.Serve(lis); err != nil {
-	// 	log.Fatalf("Failed to serve: %v", err)
-	// }
 }
