@@ -8,43 +8,62 @@ import (
 	"os/exec"
 	"strconv"
 	"sync"
+	"bufio"
 	// "google.golang.org/grpc"
 )
 
 type channel = chan []byte
 
-func startWorkerProcs(numWorkers int, frameChan channel) []*exec.Cmd {
+func startWorkerProcs(numWorkers int, frameChan channel, resultChan channel) []*exec.Cmd {
 	workers := make([]*exec.Cmd, numWorkers)
 	for i := 0; i < numWorkers; i++ {
-		cmd := exec.Command("python", "-m", "piperworker") // Change the command and arguments accordingly if needed
+		cmd := exec.Command("python", "worker.py") // Change the command and arguments accordingly if needed
 		cmd.Stdin = os.Stdin
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 
-		// Create a named pipe (FIFO) for each worker
-		workerName := fmt.Sprintf("piperworker@%d", i)
-		err := exec.Command("mkfifo", workerName).Run()
+		// Connect the worker process' standard input to the frame data channel
+		stdin, err := cmd.StdinPipe()
 		if err != nil {
-			log.Fatalln("Error creating named pipe:", err)
+			log.Println("Error creating stdin pipe for worker process:", err)
 			return nil
 		}
-
-		// Connect the named pipe to the worker process' standard input
-		fifo, err := os.OpenFile(workerName, os.O_WRONLY, os.ModeNamedPipe)
-		if err != nil {
-			log.Fatalln("Error opening named pipe:", err)
-			return nil
-		}
-		cmd.ExtraFiles = append(cmd.ExtraFiles, fifo)
-
-		workers[i] = cmd
-
 		go func() {
-			err := cmd.Run()
-			if err != nil {
-				log.Println("Worker process exited with error:", err)
+			for frameData := range frameChan {
+				_, err := stdin.Write(frameData)
+				if err != nil {
+					log.Println("Error writing to worker process:", err)
+					return
+				}
 			}
 		}()
+
+		// Connect the worker process' standard output to the result channel
+		stdout, err := cmd.StdoutPipe()
+		if err != nil {
+			log.Println("Error creating stdout pipe for worker process:", err)
+			return nil
+		}
+		go func() {
+			reader := bufio.NewReader(stdout)
+			for {
+				resultData, err := reader.ReadBytes('\n')
+				if err != nil {
+					log.Println("Error reading result data from worker process:", err)
+					return
+				}
+				resultChan <- resultData
+			}
+		}()
+
+		// Start the worker process
+		err = cmd.Start()
+		if err != nil {
+			log.Println("Error starting worker process:", err)
+			return nil
+		}
+
+		workers[i] = cmd
 	}
 
 	return workers
