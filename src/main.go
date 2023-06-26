@@ -58,7 +58,7 @@ func main() {
 	var numWorkersStr = os.Getenv("WORKER_COUNT")
 	var numWorkers, err = strconv.Atoi(numWorkersStr)
 	if err != nil {
-		log.Fatalln("Unable to read worker count from environment!")
+		log.Fatalln("Unable to read worker count from environment! Please set \"WORKER_COUNT\" to a valid positive integer.")
 	}
 
 	// Start a TCP server to accept client connections
