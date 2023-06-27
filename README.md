@@ -7,7 +7,7 @@ Microservices & algorithm for CHALK
 Here is the basic overview of how the pipeline algorithm works:
 
 - Canvas Detection Network (**CDN**)
-- Canvas rotation & angle demorpher (**CRAD**) ()
+- Canvas rotation & angle demorpher (**CRAD**) 
 - Convex Hull & Canvas Cleanup (basic contrast & convex hull algo.)
 - Contour Extraction Model (neural net) (**CEM**)
 - Skeleton Generator (**SG**)
