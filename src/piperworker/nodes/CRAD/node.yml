@@ -1,0 +1,3 @@
+node:
+  name: CRAD
+  exec: "python"

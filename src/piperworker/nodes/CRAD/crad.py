@@ -2,6 +2,8 @@ from typing import Any, List, Tuple
 import cv2
 import numpy as np
 
+# from skimage.morphology import medial_axis
+
 
 # Define the function to rotate an object to
 # make it orthogonal to the screen
@@ -10,10 +12,7 @@ def remove_perspective(frame: Any, points: list) -> Tuple[int, int]:
     Function to align the frame in 3D space
     given some normal.
 
-    https://docs.opencv2.org/4.x/d9/dab/tutorial_homography.html
     """
-
-    # print(f"{frame=} {points=}")
 
     def __perspective_dim(points: list):
         """
@@ -60,3 +59,54 @@ def remove_perspective(frame: Any, points: list) -> Tuple[int, int]:
     new_frame = cv2.warpPerspective(frame, perspective_transform, (width, height))
 
     return new_frame
+
+
+def canvas_contour(
+    canvas_frame: Any,
+    board_color: Tuple[int, int, int] = (100, 100, 100),
+    epsilon: int = 20,
+) -> Tuple[Any, List[Any]]:
+    """
+    A function for getting the contours
+    """
+    # Define the upper and lower bounds for the background color
+
+    # Apply Gaussian blur to the result canvas_frame
+    blur = cv2.GaussianBlur(canvas_frame, (5, 5), 0)
+
+    # Convert the canvas_frame to grayscale
+    gray = cv2.cvtColor(blur, cv2.COLOR_RGBA2GRAY)
+
+    # Apply edge detection to the blurred canvas_frame
+    edges = cv2.Canny(gray, 10, 50)
+
+    # Find contours in the edge map
+    contours, _hierarchy = cv2.findContours(
+        edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
+    )
+
+    return canvas_frame, contours
+
+
+def canvas_render(
+    canvas_frame: Any,
+    contours: List[Any],
+    bg_color: Tuple[int, int, int] = (0, 0, 0),
+    pen_color: Tuple[int, int, int] = (255, 255, 255),
+) -> Any:
+    """
+    This function takes the last bit of information and renderes
+    the new canvas board.
+    """
+
+    # Make an empty frame
+    rendered_frame = np.zeros(canvas_frame.shape[:3], np.uint8)
+
+    # Apply the bg color
+    rendered_frame[::] = bg_color
+
+    # Approx contours
+    for cnt in contours:
+        cv2.drawContours(rendered_frame, [cnt], -1, pen_color, 1)
+
+    return rendered_frame
