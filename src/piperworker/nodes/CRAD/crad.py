@@ -2,8 +2,6 @@ from typing import Any, List, Tuple
 import cv2
 import numpy as np
 
-# from skimage.morphology import medial_axis
-
 
 # Define the function to rotate an object to
 # make it orthogonal to the screen
