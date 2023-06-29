@@ -1,0 +1,62 @@
+from typing import Any, List, Tuple
+import cv2
+import numpy as np
+
+
+# Define the function to rotate an object to
+# make it orthogonal to the screen
+def remove_perspective(frame: Any, points: list) -> Tuple[int, int]:
+    """
+    Function to align the frame in 3D space
+    given some normal.
+
+    https://docs.opencv2.org/4.x/d9/dab/tutorial_homography.html
+    """
+
+    # print(f"{frame=} {points=}")
+
+    def __perspective_dim(points: list):
+        """
+        Function to determine the output dimensions
+        of the given points of a rectangle to be
+        unperspectivized.
+        """
+
+        points = list(map(np.asarray, points))
+
+        width_vec = max(
+            points[1] - points[0],
+            points[3] - points[2],
+            key=np.linalg.norm,
+        )
+
+        height_vec = max(
+            points[3] - points[0],
+            points[2] - points[1],
+            key=np.linalg.norm,
+        )
+
+        width, height = np.linalg.norm(width_vec), np.linalg.norm(height_vec)
+        width, height = np.ceil(width), np.ceil(height)
+        width, height = int(width), int(height)
+
+        return width, height
+
+    # Define the four corners of the desired rectangle
+    perspective_src = np.array(points)
+
+    # Calculate the width and height of the output
+    width, height = __perspective_dim(points)
+
+    # Define the corresponding four corners in the output image
+    perspective_dist = np.array(
+        [[0, 0], [width - 1, 0], [width - 1, height - 1], [0, height - 1]]
+    )
+
+    # Calculate the perspective transform matrix
+    perspective_transform, _ = cv2.findHomography(perspective_src, perspective_dist)
+
+    # Apply the perspective transformation to the input image
+    new_frame = cv2.warpPerspective(frame, perspective_transform, (width, height))
+
+    return new_frame
