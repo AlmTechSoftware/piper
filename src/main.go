@@ -14,35 +14,10 @@ import (
 type channel = chan []byte
 
 // TODO: REPLACE WITH CREATING OF NEW WORKERS WHEN NEEDED BECAUSE EZ
-func createWorker(id int) (*os.Process, string, error) {
-	socket := fmt.Sprintf("/tmp/piperworker_%d.socket", id)
-
-	// Remove the socket path if exist
-	os.Remove(socket)
-
-	// Create the socket file
-	os.Create(socket)  // FIXME: perm error
-
-	// Start the PiperWorker
-	worker := exec.Command("python", "-m", "piperworker", socket)
-	worker.Stdout = os.Stdout
-	worker.Stderr = os.Stderr
-
-	err := worker.Start()
-	if err != nil {
-		log.Fatalln("Failed to start worker with error:", err)
-		return nil, socket, err
-	}
-
-	return worker.Process, socket, err
-}
 
 func initWorkers(numWorkers int, frameChan channel) ([]*os.Process, []string, error) {
 	workers := make([]*os.Process, numWorkers)
 	socketPaths := make([]string, numWorkers)
-
-	for i := 0; i < numWorkers; i++ {
-	}
 
 	return workers, socketPaths, nil
 }

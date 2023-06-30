@@ -1,11 +1,38 @@
 package main
 
 import (
+	"fmt"
 	"io"
 	"log"
 	"net"
+	"os"
+	"os/exec"
 	"sync"
+	"syscall"
 )
+
+func createWorker(id int) (*os.Process, string, error) {
+	socket := fmt.Sprintf("/tmp/piperworker_%d.socket", id)
+
+	// Remove the socket path if exist
+	os.Remove(socket)
+
+	// Create the socket file
+	os.Create(socket)  // FIXME: perm error
+
+	// Start the PiperWorker
+	worker := exec.Command("python", "-m", "piperworker", socket)
+	worker.Stdout = os.Stdout
+	worker.Stderr = os.Stderr
+
+	err := worker.Start()
+	if err != nil {
+		log.Fatalln("Failed to start worker with error:", err)
+		return nil, socket, err
+	}
+
+	return worker.Process, socket, err
+}
 
 func handleClient(conn net.Conn, wg *sync.WaitGroup, frameChan channel) {
 	log.Println("New client connected:", conn.RemoteAddr().String())
