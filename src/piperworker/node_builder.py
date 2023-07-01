@@ -25,7 +25,7 @@ class Pipeline:
         for i, node_function in enumerate(self.nodes):
             try:
                 input_proc = node_function(*input_proc)
-            except (ArgumentError, TypeError) as err:
-                raise Exception(f"Pipeline error at index {i-1}->{i}.\n{err}")
+            except (ArgumentError, TypeError) as error:
+                raise Exception(f"Pipeline error at index {i-1}->{i}.\n{error}")
 
         return input_proc
