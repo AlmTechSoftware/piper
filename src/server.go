@@ -1,48 +1,43 @@
 package main
 
 import (
-	"io"
 	"log"
-	"net"
-	"os"
-	"sync"
+
+	"github.com/gorilla/websocket"
 )
 
-func handleClient(conn net.Conn, wg *sync.WaitGroup, workers []**os.Process) {
+func handlePiper(conn *websocket.Conn, workers []*PiperWorker) {
 	log.Println("New client connected:", conn.RemoteAddr().String())
 
 	// Create piperworker
 	worker := newPiperWorker()
+	defer worker.kill()
 
-	defer func() {
-		conn.Close()
-		wg.Done()
-		log.Println("Client disconnected:", conn.RemoteAddr().String())
-	}()
-
-	// Create a buffer to hold the incoming frame data
-	buffer := make([]byte, 1024)
+	// Append worker to workers
+	workers = append(workers, worker)
 
 	for {
-		// Read frame data from the client
-		n, err := conn.Read(buffer)
+		_, frameData, err := conn.ReadMessage()
 		if err != nil {
-			if err == io.EOF {
-				continue
-			}
-			log.Println("Error reading from client:", err)
+			log.Println("Failed to read WS message:", err)
 			continue
 		}
 
-		// Send to PiperWorker for processing
+		// TODO: async
 
-		// Recieve data and return to client
+		// Send the frame data to the worker
+		worker.send(frameData)
 
-		// Return new proc data to client
-		// _, err = conn.Write(newFrameData)
-		// if err != nil {
-		// 	log.Println("Error sending frame-data back to client:", err)
-		// 	return
-		// }
+		// Now recv data from the worker and send back to client
+		frameData, err = worker.recv(BUFFER_SIZE)
+		if err != nil {
+			log.Println("Frame data processing failed:", err)
+		}
+
+		// Returned the processed frames to the client
+		err = conn.WriteMessage(1, frameData)
+		if err != nil {
+			log.Println("Unable to send data back to client:", err)
+		}
 	}
 }

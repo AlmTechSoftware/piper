@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"syscall"
 
 	"github.com/google/uuid"
 	"github.com/james-barrow/golang-ipc"
@@ -63,4 +64,10 @@ func (w PiperWorker) send(data []byte) error {
 func (w PiperWorker) recv(size int) ([]byte, error) {
 	msg, err := w.ipc.Read()
 	return msg.Data, err
+}
+
+func (w PiperWorker) kill() {
+	w.proc.Process.Signal(syscall.SIGTERM)
+	w.proc.Process.Wait()
+	w.ipc.Close()
 }
