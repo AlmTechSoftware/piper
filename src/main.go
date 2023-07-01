@@ -1,11 +1,9 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net"
 	"os"
-	"os/exec"
 	"strconv"
 	"sync"
 	"syscall"
@@ -13,7 +11,7 @@ import (
 
 type channel = chan []byte
 
-func initWorkers(numWorkers int, frameChan channel) ([]*os.Process, []string, error) {
+func initWorkers(numWorkers int) ([]*os.Process, []string, error) {
 	workers := make([]*os.Process, numWorkers)
 	socketPaths := make([]string, numWorkers)
 
@@ -46,9 +44,9 @@ func main() {
 
 	defer lis.Close()
 
-	workers []*os.Process := []
 
-	workers, socketPaths, err := initWorkers(numWorkers, frameChan)
+	var workers []*os.Process
+	workers, socketPaths, err := initWorkers(numWorkers)
 	if err != nil {
 		return
 	}

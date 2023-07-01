@@ -13,10 +13,10 @@ func reader(r io.Reader, size int) ([]byte, error) {
 		return nil, err
 	}
 
-	return buf[0:n], nil
+	return buf[0:n], err
 }
 
-func sender(socket string, data []byte) int {
+func sender(socket string, data []byte) (int, error) {
 	c, err := net.Dial("unix", socket)
 	if err != nil {
 		log.Fatal(err)
@@ -28,5 +28,5 @@ func sender(socket string, data []byte) int {
 		log.Println("IPC socket write error:", err)
 	}
 
-	return n
+	return n, err
 }
