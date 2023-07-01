@@ -44,7 +44,6 @@ func main() {
 
 	defer lis.Close()
 
-
 	var workers []*os.Process
 	workers, socketPaths, err := initWorkers(numWorkers)
 	if err != nil {
