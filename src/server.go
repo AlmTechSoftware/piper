@@ -1,14 +1,45 @@
 package main
 
 import (
+	"fmt"
 	"io"
 	"log"
 	"net"
+	"os"
+	"os/exec"
 	"sync"
+	"james-barrow/golang-ipc"
 )
 
-func handleClient(conn net.Conn, wg *sync.WaitGroup, frameChan channel) {
+func createWorker(id int) (*exec.Cmd, string, error) {
+	socket := fmt.Sprintf("/tmp/piperworker_%d.socket", id)
+
+	// Remove the socket path if exist
+	os.Remove(socket)
+
+	// Create the socket file
+	os.Create(socket) // FIXME: perm error
+
+	// Start the PiperWorker
+	worker := exec.Command("python", "-m", "piperworker", socket)
+	worker.Stdout = os.Stdout
+	worker.Stderr = os.Stderr
+
+	err := worker.Start()
+	if err != nil {
+		log.Fatalln("Failed to start worker with error:", err)
+		return nil, socket, err
+	}
+
+	return worker, socket, err
+}
+
+func handleClient(conn net.Conn, wg *sync.WaitGroup, workers []**os.Process) {
 	log.Println("New client connected:", conn.RemoteAddr().String())
+
+	// Create piperworker
+	worker, socket, err := createWorker(len(workers)+1)
+
 	defer func() {
 		conn.Close()
 		wg.Done()
@@ -30,18 +61,14 @@ func handleClient(conn net.Conn, wg *sync.WaitGroup, frameChan channel) {
 		}
 
 		// Send to PiperWorker for processing
-		frameData := buffer[:n]
-		frameChan <- frameData
-		log.Printf("Received frame from %s: %v\n", conn.RemoteAddr().String(), frameData)
 
 		// Recieve data and return to client
-		newFrameData := <-frameChan
 
 		// Return new proc data to client
-		_, err = conn.Write(newFrameData)
-		if err != nil {
-			log.Println("Error sending frame-data back to client:", err)
-			return
-		}
+		// _, err = conn.Write(newFrameData)
+		// if err != nil {
+		// 	log.Println("Error sending frame-data back to client:", err)
+		// 	return
+		// }
 	}
 }

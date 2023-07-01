@@ -13,33 +13,9 @@ import (
 
 type channel = chan []byte
 
-func startWorkerProcs(numWorkers int, frameChan channel) ([]*os.Process, []string, error) {
+func initWorkers(numWorkers int, frameChan channel) ([]*os.Process, []string, error) {
 	workers := make([]*os.Process, numWorkers)
 	socketPaths := make([]string, numWorkers)
-
-	for i := 0; i < numWorkers; i++ {
-		socket := fmt.Sprintf("/tmp/piperworker_%d.socket", i)
-		socketPaths[i] = socket
-
-		// Remove the socket path if exist
-		os.Remove(socket)
-
-		// Create the socket file
-		os.Create(socket) // FIXME: add actual unix perms etc.
-
-		// Start the PiperWorker
-		worker := exec.Command("python", "-m", "piperworker", socket)
-		worker.Stdout = os.Stdout
-		worker.Stderr = os.Stderr
-
-		err := worker.Start()
-		if err != nil {
-			log.Fatalln("Failed to start worker with error:", err)
-			return nil, nil, err
-		}
-
-		workers[i] = worker.Process
-	}
 
 	return workers, socketPaths, nil
 }
@@ -54,10 +30,10 @@ func main() {
 	}
 
 	// WORKER COUNT
-	var numWorkersStr = os.Getenv("WORKER_COUNT")
+	var numWorkersStr = os.Getenv("MAX_WORKER_COUNT")
 	var numWorkers, err = strconv.Atoi(numWorkersStr)
 	if err != nil {
-		log.Fatalln("Unable to read worker count from environment!")
+		log.Fatalln("Unable to read max worker count from the environment!\nPlease set \"MAX_WORKER_COUNT\" to a valid positive integer.")
 	}
 
 	// Start a TCP server to accept client connections
@@ -70,10 +46,9 @@ func main() {
 
 	defer lis.Close()
 
-	// Start the worker processes
-	frameChan := make(chan []byte)
+	workers []*os.Process = []
 
-	workers, socketPaths, err := startWorkerProcs(numWorkers, frameChan)
+	workers, socketPaths, err := initWorkers(numWorkers, frameChan)
 	if err != nil {
 		return
 	}
@@ -95,6 +70,7 @@ func main() {
 
 	var wg sync.WaitGroup
 	for {
+		// FIXME: handle clients and create new workers
 		// accept a new client connection
 		conn, err := lis.Accept()
 		if err != nil {
@@ -104,7 +80,7 @@ func main() {
 
 		// Handle the client connection asynchronously
 		wg.Add(1)
-		go handleClient(conn, &wg, frameChan)
+		go handleClient(conn, &wg)
 	}
 
 	// NOTE: Will never reach but good to have I guess?
