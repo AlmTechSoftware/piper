@@ -3,7 +3,7 @@ from ctypes import ArgumentError
 
 class Pipeline:
     """
-    Basic "monad" like class for pipelining functions.
+    Basic "monad" like class for pipelining the node functions.
     """
 
     def __init__(self, nodes: list = []):
@@ -24,7 +24,6 @@ class Pipeline:
         # Evaluate each node in pipeline order
         for i, node_function in enumerate(self.nodes):
             try:
-                print(input_proc)
                 input_proc = node_function(*input_proc)
             except (ArgumentError, TypeError) as err:
                 raise Exception(f"Pipeline error at index {i-1}->{i}.\n{err}")
