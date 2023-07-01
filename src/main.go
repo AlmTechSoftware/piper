@@ -80,7 +80,7 @@ func main() {
 
 		// Handle the client connection asynchronously
 		wg.Add(1)
-		go handleClient(conn, &wg, &workers)
+		go handleClient(conn, &wg)
 	}
 
 	// NOTE: Will never reach but good to have I guess?

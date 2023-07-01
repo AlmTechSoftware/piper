@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"sync"
+	"james-barrow/golang-ipc"
 )
 
 func createWorker(id int) (*exec.Cmd, string, error) {
@@ -37,7 +38,7 @@ func handleClient(conn net.Conn, wg *sync.WaitGroup, workers []**os.Process) {
 	log.Println("New client connected:", conn.RemoteAddr().String())
 
 	// Create piperworker
-	// proc, socket, err = createWorker()
+	worker, socket, err := createWorker(len(workers)+1)
 
 	defer func() {
 		conn.Close()
