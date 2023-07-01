@@ -13,8 +13,6 @@ import (
 
 type channel = chan []byte
 
-// TODO: REPLACE WITH CREATING OF NEW WORKERS WHEN NEEDED BECAUSE EZ
-
 func initWorkers(numWorkers int, frameChan channel) ([]*os.Process, []string, error) {
 	workers := make([]*os.Process, numWorkers)
 	socketPaths := make([]string, numWorkers)
@@ -47,9 +45,6 @@ func main() {
 	}
 
 	defer lis.Close()
-
-	// Start the worker processes
-	frameChan := make(chan []byte)
 
 	workers []*os.Process = []
 
@@ -85,7 +80,7 @@ func main() {
 
 		// Handle the client connection asynchronously
 		wg.Add(1)
-		go handleClient(conn, &wg, frameChan)
+		go handleClient(conn, &wg, &workers)
 	}
 
 	// NOTE: Will never reach but good to have I guess?
