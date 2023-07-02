@@ -4,38 +4,41 @@ import sys
 import numpy as np
 import logging as log
 import asyncio
+from asyncio.streams import StreamReader, StreamWriter
 
-socket_path = "/tmp/my_socket.socket"
-max_queue_size = 10
+socket_path: str = "/tmp/my_socket.socket"
+max_queue_size: int = 10
 
 
-async def process_frame(frame_data_bytes):
+async def process_frame(frame_data_bytes: bytes) -> bytes:
     # Convert the frame data to a NumPy array
     frame_array = np.frombuffer(frame_data_bytes, dtype=np.uint8)
 
     # Decode the H.264 frame using OpenCV
     new_frame = cv2.imdecode(frame_array, cv2.IMREAD_UNCHANGED)
 
-    # TODO: Perform asynchronous video processing operations
+    # TODO: Perform video processing 
 
     # Send back the frame in byte format
     return new_frame.tobytes()
 
 
-async def handle_client(reader, writer):
+async def handle_client(reader: StreamReader, writer: StreamWriter) -> None:
     client_address = writer.get_extra_info("peername")
     print(f"Accepted connection from {client_address}")
 
     # Create an asyncio Queue to store the video frames
-    video_queue = asyncio.Queue(maxsize=max_queue_size)
+    video_queue: asyncio.Queue[bytes] = asyncio.Queue(maxsize=max_queue_size)
 
     # Start the video processing task
-    processing_task = asyncio.create_task(process_video_frames(video_queue, writer))
+    processing_task: asyncio.Task[None] = asyncio.create_task(
+        process_video_frames(video_queue, writer)
+    )
 
     try:
         while True:
             # Read data from the client
-            data = await reader.read(1024)
+            data: bytes = await reader.read(1024)
             if not data:
                 break
 
@@ -61,15 +64,17 @@ async def handle_client(reader, writer):
         print(f"Closed connection from {client_address}")
 
 
-async def process_video_frames(video_queue, writer):
+async def process_video_frames(
+    video_queue: asyncio.Queue[bytes], writer: StreamWriter
+) -> None:
     while True:
         # Get the next frame from the video queue
-        frame_data = await video_queue.get()
+        frame_data: bytes = await video_queue.get()
 
         # Process the frame asynchronously
-        processed_frame = await process_frame(frame_data)
+        processed_frame: bytes = await process_frame(frame_data)
 
-        # Send back the processed frame to the client (optional)
+        # Send back the processed frame to the client
         writer.write(processed_frame)
         await writer.drain()
 
@@ -77,7 +82,10 @@ async def process_video_frames(video_queue, writer):
         print(f"Processed frame: {len(processed_frame)} bytes")
 
 
-async def start_worker(socket_path: str):
+async def start_worker(socket_path: str) -> None:
+    if os.path.exists(socket_path):
+        os.remove(socket_path)
+
     server = await asyncio.start_unix_server(handle_client, path=socket_path)
 
     async with server:
@@ -92,10 +100,9 @@ if __name__ == "__main__":
         exit(1)
 
     socket_path = sys.argv[1]
+    print(f'Starting PiperWorker on socket "{socket_path}"')
 
     if os.path.exists(socket_path):
         os.remove(socket_path)
-
-    print(f'Starting PiperWorker on socket "{socket_path}"')
 
     asyncio.run(start_worker(socket_path))
