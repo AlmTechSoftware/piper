@@ -38,10 +38,10 @@ func processClient(conn *websocket.Conn, workers []*PiperWorker) {
 
 	// Create piperworker
 	worker := newPiperWorker()
-	defer func() {
-		conn.Close()
-		worker.kill()
-	}()
+	// defer func() {
+	// 	conn.Close()
+	// 	worker.kill()
+	// }()
 
 	// Append worker to workers
 	workers = append(workers, worker)
@@ -54,7 +54,8 @@ func processClient(conn *websocket.Conn, workers []*PiperWorker) {
 		for {
 			_, frameData, err := conn.ReadMessage()
 			if err != nil {
-				log.Println("Failed to read WS message:", err)
+				// Connection closed / connection error
+				log.Println("Connection error:", err)
 				return
 			}
 
