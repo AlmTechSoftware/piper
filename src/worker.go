@@ -23,7 +23,7 @@ func newPiperWorker() *PiperWorker {
 	var id = uuid.New()
 
 	// Create the socket path
-	var socket = fmt.Sprintf("/tmp/piperworker_%d.socket", id.String())
+	var socket = fmt.Sprintf("/tmp/piperworker_%s.socket", id.String())
 
 	// Remove the socket path if exist
 	os.Remove(socket)

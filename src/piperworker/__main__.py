@@ -1,8 +1,9 @@
+import os
 import cv2
 import sys
-import socket
 import numpy as np
 import logging as log
+import asyncio
 # from cv_entrypoint import open_cv_frame_piper
 
 
@@ -19,32 +20,42 @@ def process_frame(frame_data_bytes):
     return new_frame.tobytes()
 
 
-def start_worker(socket_path: str):
-    # Create a Unix domain socket
-    sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+async def handle_client(reader, writer):
+    client_address = writer.get_extra_info("peername")
+    print(f"Accepted connection from {client_address}")
 
     try:
-        # Connect to the socket
-        sock.connect(socket_path)
-        print("Connected to the socket:", socket_path)
-
-        # Process frame data received from the Go server
         while True:
-            frame_data = sock.recv(1024)
-            if not frame_data:
-                continue
+            # Read data from the client
+            data = await reader.read(1024)
+            if not data:
+                break
 
-            # Process the frame data
-            processed_data = process_frame(frame_data)
+            # Process data
+            new_frame = process_frame(data)
 
-            # Send the processed data back to the Go server
-            sock.sendall(processed_data)
-    except Exception as err:
-        log.error("Error occurred:", err)
+            # Send back the processed data
+            writer.write(new_frame)
+            await writer.drain()
+
+    except Exception as e:
+        print(f"Error occurred: {e}")
+
     finally:
-        # Close the socket
-        sock.close()
-        print("Socket connection closed")
+        # Close the client connection
+        writer.close()
+        print(f"Closed connection from {client_address}")
+
+
+async def start_worker(socket_path: str):
+    if os.path.exists(socket_path):
+        os.remove(socket_path)
+
+    server = await asyncio.start_unix_server(handle_client, path=socket_path)
+
+    async with server:
+        await server.serve_forever()
+    
 
 
 if __name__ == "__main__":
@@ -55,9 +66,6 @@ if __name__ == "__main__":
         exit(1)
 
     socket_path = sys.argv[1]
-    print(f'Starting PiperWorker on socket "{socket_path}"')
+    print(f"Starting PiperWorker on socket \"{socket_path}\"")
 
-    start_worker(socket_path)
-
-    # Start the worker process
-    # open_cv_frame_piper(socket)
+    asyncio.run(start_worker(socket_path))
