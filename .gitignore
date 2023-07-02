@@ -1,3 +1,10 @@
+# Misc
+bin/
+lib32/
+lib64/
+lib/
+include/
+
 # Logs
 logs
 *.log
