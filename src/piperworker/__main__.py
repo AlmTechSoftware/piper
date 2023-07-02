@@ -6,7 +6,6 @@ import logging as log
 import asyncio
 from asyncio.streams import StreamReader, StreamWriter
 
-socket_path: str = "/tmp/my_socket.socket"
 max_queue_size: int = 10
 
 
@@ -17,7 +16,7 @@ async def process_frame(frame_data_bytes: bytes) -> bytes:
     # Decode the H.264 frame using OpenCV
     new_frame = cv2.imdecode(frame_array, cv2.IMREAD_UNCHANGED)
 
-    # TODO: Perform video processing 
+    # TODO: Perform video processing
 
     # Send back the frame in byte format
     return new_frame.tobytes()
