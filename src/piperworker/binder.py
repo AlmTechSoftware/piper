@@ -1,6 +1,6 @@
 from .pipeline import Pipeline
 
-# Seudo code, but the basis
+# Pseudo code, but the basis
 # import canvas
 # import CDNN
 # import CEMNN
