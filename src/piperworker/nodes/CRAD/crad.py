@@ -65,7 +65,7 @@ def canvas_contour(
     epsilon: int = 20,
 ) -> Tuple[Any, List[Any]]:
     """
-    A function for getting the contours
+    A function for getting the contours.
     """
     # Define the upper and lower bounds for the background color
 
@@ -108,3 +108,15 @@ def canvas_render(
         cv2.drawContours(rendered_frame, [cnt], -1, pen_color, 1)
 
     return rendered_frame
+
+
+def entrypoint(frame, points):
+    """
+    The finalization of the entire CRAD process.
+    """
+
+    crad_frame = remove_perspective(frame, points)
+    crad_frame, frame_contours = canvas_contour(crad_frame)
+    crad_frame = canvas_render(crad_frame, frame_contours)
+
+    return crad_frame
