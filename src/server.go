@@ -1,46 +1,78 @@
 package main
 
 import (
-	"io"
 	"log"
-	"net"
-	"sync"
+	"net/http"
+
+	"github.com/gorilla/websocket"
 )
 
-func handleClient(conn net.Conn, wg *sync.WaitGroup, frameChan channel) {
+func initWorkers(numWorkers int) []*PiperWorker {
+	workers := make([]*PiperWorker, numWorkers)
+
+	return workers
+}
+
+var BUFFER_SIZE = 1024
+
+var upgrader = websocket.Upgrader{
+	ReadBufferSize:  BUFFER_SIZE,
+	WriteBufferSize: BUFFER_SIZE,
+}
+
+var maxNumWorkers int = 0
+var workers []*PiperWorker
+
+func handleClient(w http.ResponseWriter, r *http.Request) {
+	conn, err := upgrader.Upgrade(w, r, nil)
+
+	if err != nil {
+		log.Println("Failed to upgrade connection", err)
+		return
+	}
+
+	// TODO: implement a queue
+	// TODO: check if max workers reached, if so then put into queue
+
+	go processClient(conn, workers)
+}
+
+func processClient(conn *websocket.Conn, workers []*PiperWorker) {
 	log.Println("New client connected:", conn.RemoteAddr().String())
+
+	// Create piperworker
+	worker := newPiperWorker()
 	defer func() {
 		conn.Close()
-		wg.Done()
-		log.Println("Client disconnected:", conn.RemoteAddr().String())
+		worker.kill()
 	}()
 
-	// Create a buffer to hold the incoming frame data
-	buffer := make([]byte, 1024)
+	// Append worker to workers
+	workers = append(workers, worker)
 
 	for {
-		// Read frame data from the client
-		n, err := conn.Read(buffer)
+		_, frameData, err := conn.ReadMessage()
 		if err != nil {
-			if err == io.EOF {
-				continue
-			}
-			log.Println("Error reading from client:", err)
-			continue
+			log.Println("Failed to read WS message:", err)
+			return
 		}
 
-		// Send to PiperWorker for processing
-		frameData := buffer[:n]
-		frameChan <- frameData
-		log.Printf("Received frame from %s: %v\n", conn.RemoteAddr().String(), frameData)
+		// TODO: async
 
-		// Recieve data and return to client
-		newFrameData := <-frameChan
+		// Send the frame data to the worker
+		worker.send(frameData)
 
-		// Return new proc data to client
-		_, err = conn.Write(newFrameData)
+		// Now recv data from the worker and send back to client
+		frameData, err = worker.recv(BUFFER_SIZE)
 		if err != nil {
-			log.Println("Error sending frame-data back to client:", err)
+			log.Println("Frame data processing failed:", err)
+			return
+		}
+
+		// Returned the processed frames to the client
+		err = conn.WriteMessage(1, frameData)
+		if err != nil {
+			log.Println("Unable to send data back to client:", err)
 			return
 		}
 	}
