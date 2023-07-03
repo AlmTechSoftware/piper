@@ -1,40 +1,56 @@
 import asyncio
-import numpy as np
-import cv2
 import websockets
-import multiprocessing
+import logging
 
-async def video_processing(frame):
-    # Perform video processing using NumPy or any other desired method
-    # This is just a placeholder example
-    processed_frame = np.flip(frame, axis=1)  # Flip the frame horizontally
-    return processed_frame
+from .process import process
 
-async def handle_websocket(websocket, path):
+from colored import Fore, Back, Style
+
+loop = asyncio.new_event_loop()
+asyncio.set_event_loop(loop)
+
+
+async def handle_client(ws, path):
+    if path != PATH:
+        await ws.close()
+        return
+
+    client_ip = ws.remote_address[0]
+    client_ip_str = f"{Fore.rgb(100, 200, 200)}{client_ip}{Style.reset}"
+    logging.info(f"{client_ip_str}: connected")
     while True:
         try:
-            data = await websocket.recv()
-            # Assuming the received data is the raw H.264 video frame
-            frame = cv2.imdecode(np.frombuffer(data, dtype=np.uint8), cv2.IMREAD_UNCHANGED)
+            data = await ws.recv()
+            logging.info(f"{client_ip_str}: Received frame for processing")
 
-            # Create a new process to handle video processing
-            process = multiprocessing.Process(target=video_processing, args=(frame,))
-            process.start()
+            processed_frame = await process(data, loop, client_ip_str)
+
+            if processed_frame != None:
+                logging.info(f"{client_ip_str}: Frame processed successfully")
+
+                # Send the processed frame back to the client
+                await ws.send(processed_frame.tobytes())
+
+                logging.info(f"{client_ip_str}: New frame sent")
+            else:
+                logging.warn(f"{client_ip_str}: Malformed frame, skipping...")
+                continue
 
         except websockets.exceptions.ConnectionClosed:
+            logging.info(f"{client_ip_str}: Disconnected.")
             break
 
-async def start_server():
-    websocket_server = websockets.serve(handle_websocket, 'localhost', 8765)
+        except asyncio.CancelledError:
+            logging.info("Server is closing...")
+            await ws.close()
 
-    async with websocket_server:
-        await websocket_server.start_serving()
 
-def run_server():
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    loop.run_until_complete(start_server())
+async def start_server(path: str, port: int):
+    global PATH
+    PATH = path
+    await websockets.serve(handle_client, "localhost", port)
+
+
+def run_server(path: str = "/piper", port: int = 4242):
+    loop.run_until_complete(start_server(path, port))
     loop.run_forever()
-
-if __name__ == '__main__':
-    run_server()
