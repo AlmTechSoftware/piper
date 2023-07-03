@@ -24,8 +24,9 @@ async def handle_client(ws, path):
             logging.info(f"{client_ip_str}: Received frame for processing")
 
             processed_frame = await process(data, loop, client_ip_str)
+            logging.debug(f"{processed_frame}")
 
-            if processed_frame != None:
+            if processed_frame:
                 logging.info(f"{client_ip_str}: Frame processed successfully")
 
                 # Send the processed frame back to the client
@@ -34,6 +35,7 @@ async def handle_client(ws, path):
                 logging.info(f"{client_ip_str}: New frame sent")
             else:
                 logging.warn(f"{client_ip_str}: Malformed frame, skipping...")
+                await ws.send(b"")
                 continue
 
         except websockets.exceptions.ConnectionClosed:

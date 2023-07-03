@@ -7,13 +7,11 @@ from colored import Fore, Back, Style
 load_dotenv()
 
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.DEBUG,
     format=f"{Fore.rgb(100, 100, 100)}%(asctime)s {Fore.rgb(255, 255, 255)}{Back.rgb(80, 200, 80)} PIPER {Style.reset} [{Fore.rgb(255, 240, 240)}%(levelname)s{Style.reset}] %(message)s",
 )
 
 PORT = int(os.getenv("PORT", 4242))
-MAX_WORKER_COUNT = int(os.getenv("MAX_WORKER_COUNT", 0))
-BUFFER_SIZE = 1024
 
 
 def main():
