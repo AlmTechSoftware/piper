@@ -9,7 +9,7 @@ from .pipeline import Pipeline
 # import SGNN
 # import vect
 
-pipeline = Pipeline
+pipeline = Pipeline()
 
 # Mockup for pipeline
 # pipeline.bind(canvas.entrypoint())
