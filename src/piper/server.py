@@ -24,9 +24,8 @@ async def handle_client(ws, path):
             logging.info(f"{client_ip_str}: Received frame for processing")
 
             processed_frame = await process(data, loop, client_ip_str)
-            logging.debug(f"{processed_frame}")
 
-            if processed_frame:
+            if processed_frame is not None:
                 logging.info(f"{client_ip_str}: Frame processed successfully")
 
                 # Send the processed frame back to the client
