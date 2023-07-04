@@ -67,7 +67,6 @@ def canvas_contour(
     """
     A function for getting the contours.
     """
-    # Define the upper and lower bounds for the background color
 
     # Apply Gaussian blur to the result canvas_frame
     blur = cv2.GaussianBlur(canvas_frame, (5, 5), 0)
