@@ -1,3 +1,9 @@
 [submodule "lib/h264decoder"]
 	path = lib/h264decoder
 	url = git@github.com:AlmTechSoftware/h264decoder.git
+[submodule "src/piper/h264decoder"]
+	path = src/piper/h264decoder
+	url = https://github.com/AlmTechSoftware/h264decoder.git
+[submodule "libs/h264decoder"]
+	path = libs/h264decoder
+	url = https://github.com/AlmTechSoftware/h264decoder.git
