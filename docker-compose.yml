@@ -1,0 +1,8 @@
+version: '3.9'
+
+services:
+  piper:
+    build: .
+    volumes:
+      - /path/on/host:/var/log/piper
+    restart: unless-stopped
