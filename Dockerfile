@@ -6,6 +6,7 @@ RUN apt-get update && apt-get install -y \
     python3 \
     python3-pip \
 	cmake \
+	coreutils \
 	make \
 	git \
 	libswscale-dev \
@@ -46,6 +47,5 @@ VOLUME /var/log/piper
 EXPOSE 4242
 
 RUN mkdir -p /var/log/piper
-RUN touch /var/log/piper/$(date +'%Y-%m-%d').log
 
-CMD ["python3", "-u", "-m", "piper", "|", "tee", "-a", "/var/log/piper/$(date +'%Y-%m-%d').log"]
+CMD ["sh", "-c", "LOG_FILE=\"/var/log/piper/$(date +'%Y-%m-%d').log\" && echo \"Log file path: $LOG_FILE\" && chmod 666 \"$LOG_FILE\" && python3 -u -m piper | tee -a \"$LOG_FILE\""]
