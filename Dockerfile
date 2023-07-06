@@ -5,10 +5,15 @@ FROM ubuntu:latest
 RUN apt-get update && apt-get install -y \
     python3 \
     python3-pip \
-    systemd \
+	cmake \
+	make \
+	git \
 	libswscale-dev \
 	libavcodec-dev \
 	libavutil-dev \
+	ffmpeg \
+	libsm6 \
+	libxext6 \
     && rm -rf /var/lib/apt/lists/*
 
 
@@ -19,7 +24,6 @@ WORKDIR /opt/piper
 # Copy the source code into the container
 COPY src/ .
 COPY requirements.txt .
-COPY piper.service .
 
 # Copy the libraries into the container
 COPY libs libs/
@@ -34,14 +38,14 @@ RUN for directory in libs/*; do \
         fi; \
     done
 
-# Copy the systemd service unit file
-COPY piper.service /etc/systemd/system/piper.service
 
 # Create a shared volume for logs
 VOLUME /var/log/piper
 
-# Enable the systemd service
-RUN systemctl enable --now piper.service
+# Expose ws port
+EXPOSE 4242
 
-# Start the systemd service
-CMD ["/sbin/init"]
+RUN mkdir -p /var/log/piper
+RUN touch /var/log/piper/$(date +'%Y-%m-%d').log
+
+CMD ["python3", "-u", "-m", "piper", "|", "tee", "-a", "/var/log/piper/$(date +'%Y-%m-%d').log"]
