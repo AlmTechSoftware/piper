@@ -49,7 +49,7 @@ async def handle_client(ws, path):
 async def start_server(path: str, port: int):
     global PATH
     PATH = path
-    await websockets.serve(handle_client, "localhost", port)
+    await websockets.serve(handle_client, "127.0.0.1", port)
 
 
 def run_server(path: str = "/piper", port: int = 4242):
