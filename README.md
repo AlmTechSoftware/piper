@@ -1,4 +1,6 @@
 # Piper
+[![Pylint](https://github.com/AlmTechSoftware/piper/actions/workflows/pylint.yml/badge.svg)](https://github.com/AlmTechSoftware/piper/actions/workflows/pylint.yml)
+[![Docker Image CI](https://github.com/AlmTechSoftware/piper/actions/workflows/docker-image.yml/badge.svg)](https://github.com/AlmTechSoftware/piper/actions/workflows/docker-image.yml)
 
 Microservices & algorithm for CHALK
 
