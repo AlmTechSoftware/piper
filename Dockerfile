@@ -48,4 +48,4 @@ EXPOSE 4242
 
 RUN mkdir -p /var/log/piper
 
-CMD ["sh", "-c", "LOG_FILE=\"/var/log/piper/$(date +'%Y-%m-%d').log\" && echo \"Log file path: $LOG_FILE\" && chmod 666 \"$LOG_FILE\" && python3 -u -m piper | tee -a \"$LOG_FILE\""]
+CMD ["sh", "-c", "LOG_FILE=\"/var/log/piper/$(date +'%Y-%m-%d').log\" && echo \"Log file path: $LOG_FILE\" && touch \"$LOG_FILE\" && chmod 666 \"$LOG_FILE\" && python3 -u -m piper | tee -a \"$LOG_FILE\""]

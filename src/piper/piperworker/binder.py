@@ -1,7 +1,6 @@
 from .pipeline import Pipeline
 
-# Pseudo code, but the basis
-# import canvas
+# import nodes.canvas as canvas
 # import CDNN
 # import CEMNN
 # import ColorRemap
@@ -9,20 +8,13 @@ from .pipeline import Pipeline
 # import SGNN
 # import vect
 
-global pipeline
-pipeline = Pipeline()
+PIPELINE = Pipeline()
 
-
-def get_pipeline():
-    global pipeline
-    return pipeline
-
-
-# Mockup for pipeline
-# pipeline.bind(canvas.entrypoint())
-# pipeline.bind(CDNN.entrypoint())
-# pipeline.bind(CEMNN.entrypoint())
-# pipeline.bind(ColorRemap.entrypoint())
-# pipeline.bind(CRAD.entrypoint())
-# pipeline.bind(SGNN.entrypoint())
-# pipeline.bind(vect.entrypoint())
+# Bind the nodes
+# PIPELINE.bind(canvas.entrypoint())
+# PIPELINE.bind(CDNN.entrypoint())
+# PIPELINE.bind(CEMNN.entrypoint())
+# PIPELINE.bind(ColorRemap.entrypoint())
+# PIPELINE.bind(CRAD.entrypoint())
+# PIPELINE.bind(SGNN.entrypoint())
+# PIPELINE.bind(vect.entrypoint())
