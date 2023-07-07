@@ -5,13 +5,15 @@ import asyncio
 import logging
 import cv2
 
+from piper.piperworker.binder import get_pipeline
+
 decoder = h264decoder.H264Decoder()
 
 
 async def piper_entrypoint(frame):
-    # TODO: Run the piper entrypoint here and return the new frame
+    pipeline = get_pipeline()
 
-    return frame
+    return pipeline.eval(frame)
 
 
 async def parse_client_data(data: bytes, client_ip_str: str = ""):
