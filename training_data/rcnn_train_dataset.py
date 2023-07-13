@@ -5,13 +5,7 @@ import argparse
 import tensorflow as tf
 from tensorflow.python.ops.gen_dataset_ops import ZipDataset
 from tensorflow.keras.models import Model
-from tensorflow.keras.layers import (
-    Conv2D,
-    MaxPooling2D,
-    Dropout,
-    UpSampling2D,
-    concatenate,
-)
+from tensorflow.keras.layers import Conv2D, MaxPooling2D, Dropout, UpSampling2D, concatenate
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 
 
@@ -28,14 +22,14 @@ def create_model(input_shape, num_classes):
     pool2 = MaxPooling2D(pool_size=(2, 2))(conv2)
 
     # Decoder
-    up8 = UpSampling2D(size=(2, 2))(conv8)
+    up8 = UpSampling2D(size=(2, 2))(pool2)
     up8 = Conv2D(128, 2, activation="relu", padding="same")(up8)
     merge9 = concatenate([conv2, up8], axis=3)
     conv9 = Conv2D(128, 3, activation="relu", padding="same")(merge9)
     conv9 = Conv2D(128, 3, activation="relu", padding="same")(conv9)
 
     # Output
-    output = Conv2D(num_classes, 1, activation="softmax")(conv10)
+    output = Conv2D(num_classes, 1, activation="softmax")(conv9)
 
     model = Model(inputs=inputs, outputs=output)
     return model
@@ -75,12 +69,11 @@ def train_data_setup(data_dir: str, labels_dir: str):
         seed=1,
     )
 
-    train_generator = zip(image_generator, mask_generator)
+    train_generator = ZipDataset(image_generator, mask_generator)
 
     return train_generator, image_generator, mask_generator
 
 
-# Compile and create the model
 def compile_model(num_classes: int = 10, input_shape=(256, 256, 3)):
     model = create_model(input_shape, num_classes)
 
@@ -91,10 +84,7 @@ def compile_model(num_classes: int = 10, input_shape=(256, 256, 3)):
     return model
 
 
-# Train the model
-def train_model(
-    model: Model, train_generator, image_generator, mask_generator, epochs: int = 10
-):
+def train_model(model: Model, train_generator, image_generator, mask_generator, epochs: int = 10):
     steps_per_epoch = len(image_generator)
     model.fit(train_generator, epochs=epochs, steps_per_epoch=steps_per_epoch)
 
@@ -106,6 +96,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     model = compile_model()
-    tr, im, ma = train_data_setup(args.data, args.labels)
-    train_model(model, tr, im, ma)
+    train_generator, image_generator, mask_generator = train_data_setup(args.data, args.labels)
+    train_model(model, train_generator, image_generator, mask_generator)
     model.save("feynman.h5")
