@@ -1,12 +1,11 @@
 #!/usr/bin/env python
 
-import os
 import argparse
 import tensorflow as tf
 from tensorflow.python.ops.gen_dataset_ops import ZipDataset
-from tensorflow.keras.models import Model
-from tensorflow.keras.layers import Conv2D, MaxPooling2D, Dropout, UpSampling2D, concatenate
-from tensorflow.keras.preprocessing.image import ImageDataGenerator
+from tensorflow.python.keras.models import Model
+from tensorflow.python.keras.layers import Conv2D, MaxPooling2D, Dropout, UpSampling2D, concatenate
+from tensorflow.python.keras.preprocessing.image import ImageDataGenerator
 
 
 def create_model(input_shape, num_classes):
@@ -50,12 +49,10 @@ def train_data_setup(data_dir: str, labels_dir: str):
     mask_data_generator = ImageDataGenerator(**data_gen_args)
 
     batch_size = 8
-    target_size = (256, 256)
 
     image_generator = image_data_generator.flow_from_directory(
         data_dir,
         class_mode=None,
-        target_size=target_size,
         batch_size=batch_size,
         seed=1,
     )
@@ -64,7 +61,6 @@ def train_data_setup(data_dir: str, labels_dir: str):
         labels_dir,
         class_mode=None,
         color_mode="grayscale",
-        target_size=target_size,
         batch_size=batch_size,
         seed=1,
     )
@@ -74,7 +70,7 @@ def train_data_setup(data_dir: str, labels_dir: str):
     return train_generator, image_generator, mask_generator
 
 
-def compile_model(num_classes: int = 10, input_shape=(256, 256, 3)):
+def compile_model(num_classes: int = 10, input_shape=(None, None, 3)):
     model = create_model(input_shape, num_classes)
 
     model.compile(
