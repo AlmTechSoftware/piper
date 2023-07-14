@@ -5,29 +5,28 @@ import asyncio
 import logging
 import cv2
 
+from piper.piperworker.binder import PIPELINE
+
 decoder = h264decoder.H264Decoder()
 
 
 async def piper_entrypoint(frame):
-    # TODO: Run the piper entrypoint here and return the new frame
-
-    return frame
+    return PIPELINE.eval(frame)
 
 
 async def parse_client_data(data: bytes, client_ip_str: str = ""):
     try:
         frame = cv2.imdecode(np.frombuffer(data, dtype=np.uint8), cv2.IMREAD_UNCHANGED)
-        return frame
         # H.264 video frame decoding
-        # framedatas = decoder.decode(data)
-        # for framedata in framedatas:
-        #     (frame, w, h, ls) = framedata
-        #     if frame is not None:
-        #         frame = np.frombuffer(frame, dtype=np.ubyte, count=len(frame))
-        #         frame = frame.reshape((h, ls // 3, 3))
-        #         frame = frame[:, :w, :]
-        #
-        #         return frame
+        framedatas = decoder.decode(data)
+        for framedata in framedatas:
+            (frame, w, h, ls) = framedata
+            if frame is not None:
+                frame = np.frombuffer(frame, dtype=np.ubyte, count=len(frame))
+                frame = frame.reshape((h, ls // 3, 3))
+                frame = frame[:, :w, :]
+
+                return frame
     except Exception as err:
         logging.error(
             f"{client_ip_str}: Error parsing data sent by client {err=} {data=}"
