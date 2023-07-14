@@ -6,6 +6,10 @@ ss_net = YOLO("./model/yolov8n-seg.pt")
 
 
 def find_mask_frame(frame):
+    """
+    The function for finding items and returning their mask
+    """
+
     global ss_net
     width, height, _ = frame.shape  # Get dimensions for the current frame
 
@@ -29,15 +33,21 @@ def find_mask_frame(frame):
         if clss != 60:  # Class 60 is a table, just testing stuff
             continue
 
-        mask = mask * 255
+        mask = mask * 255  # Since mask is just ones and zeroes
         mask = cv.resize(mask, (height, width))
 
-        mask_frame[0:width, 0:height] = mask
+        mask_frame[
+            0:width, 0:height
+        ] = mask  # Draw the contours on the empty mask_frame
 
     return mask_frame
 
 
 def get_contour_corners(mask_frame):
+    """
+    Takes in a mask and returns the corner points
+    """
+
     mask_frame = np.uint8(mask_frame)
 
     contours, _hierarchy = cv.findContours(
