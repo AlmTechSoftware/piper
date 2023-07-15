@@ -19,16 +19,12 @@ BATCH_SIZE = 10
 NUM_EPOCHS = 10
 
 
-def load_dataset(dataset_dir: str):
-    image_dir = os.path.join(dataset_dir, "images")
-    label_dir = os.path.join(dataset_dir, "labels")
-
-    image_filenames = os.listdir(image_dir)
+def load_dataset(image_filenames: list[str], image_dir: str, labels_dir: str):
     dataset = []
 
     for filename in image_filenames:
         image_path = os.path.join(image_dir, filename)
-        label_path = os.path.join(label_dir, f"{os.path.splitext(filename)[0]}.txt")
+        label_path = os.path.join(labels_dir, f"{os.path.splitext(filename)[0]}.txt")
 
         # Load the image
         image = tf.io.decode_jpeg(tf.io.read_file(image_path), channels=3)
@@ -49,25 +45,23 @@ def load_dataset(dataset_dir: str):
 
 def train(
     model: FeynmanModel,
-    data_dir: str,
+    images_dir: str,
     labels_dir: str,
     batch_size: int,
     num_epochs: int,
     validation_split: float = 0.2,
 ):
     # Get the list of image filenames from the data directory
-    image_filenames = sorted(os.listdir(data_dir))
+    image_filenames = sorted(os.listdir(images_dir))
 
     # Split the data into training and validation sets
     num_validation_samples = int(validation_split * len(image_filenames))
     train_image_filenames = image_filenames[:-num_validation_samples]
     val_image_filenames = image_filenames[-num_validation_samples:]
 
-    # Prepare the training and validation datasets
-    # train_dataset = create_dataset(
-    #     train_image_filenames, data_dir, labels_dir, batch_size
-    # )
-    # val_dataset = create_dataset(val_image_filenames, data_dir, labels_dir, batch_size)
+    # Setup the datasets
+    train_dataset = load_dataset(train_image_filenames, images_dir, labels_dir)
+    val_dataset = load_dataset(val_image_filenames, images_dir, labels_dir)
 
     model.compile_model()  # Compile the model
 
@@ -102,7 +96,7 @@ if __name__ == "__main__":
     model = FeynmanModel(num_classes=NUM_CLASSES)
     train(
         model,
-        data_dir=args.data,
+        images_dir=args.data,
         labels_dir=args.labels,
         batch_size=BATCH_SIZE,
         num_epochs=NUM_EPOCHS,
