@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import argparse
+from typing import List
 
 # from tensorflow.python.ops.gen_dataset_ops import ZipDataset
 # from tensorflow.python.keras.models import Model
@@ -18,25 +19,33 @@ BATCH_SIZE = 10
 NUM_EPOCHS = 10
 
 
-def create_dataset(image_filenames, data_dir, labels_dir, batch_size):
-    dataset = tf.data.Dataset.from_tensor_slices(image_filenames)
-    dataset = dataset.map(lambda x: load_image_and_label(x, data_dir, labels_dir))
-    dataset = dataset.batch(batch_size)
-    return dataset
+def load_image_and_label(image_filename: str, data_dir: str, labels_dir: str):
+    try:
+        image_path = os.path.join(data_dir, image_filename)
+        image = tf.io.read_file(image_path)
+        image = tf.image.decode_jpeg(image, channels=3)
+        image = tf.cast(image, tf.float32)
+
+        label_filename = image_filename + ".txt"
+        label_path = os.path.join(labels_dir, label_filename)
+        label = np.loadtxt(label_path, delimiter=" ")
+        label = np.expand_dims(label, axis=2)
+        label = tf.convert_to_tensor(label, dtype=tf.float32)
+
+        return image, label
+    except FileNotFoundError:
+        return None, None
 
 
-def load_image_and_label(image_filename, data_dir, labels_dir):
-    image = tf.io.read_file(os.path.join(data_dir, image_filename))
-    image = tf.image.decode_jpeg(image, channels=3)
-    image = tf.cast(image, tf.float32) / 255.0
+def create_dataset(
+    image_filenames: list[str], data_dir: str, labels_dir: str, batch_size: int
+):
+    dataset = map(lambda x: load_image_and_label(x, data_dir, labels_dir), image_filenames)
+    images, labels = tuple(zip(*dataset))
+    print(images)
+    print("_--_--_")
+    print(labels)
 
-    label_filename = image_filename.numpy().decode("utf-8") + ".txt"
-    label_filepath = os.path.join(labels_dir, label_filename)
-    label = np.loadtxt(label_filepath, delimiter=" ")
-    label = np.expand_dims(label, axis=2)
-    label = tf.convert_to_tensor(label, dtype=tf.float32)
-
-    return image, label
 
 
 def train(
