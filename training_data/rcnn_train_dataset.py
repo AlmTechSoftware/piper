@@ -1,65 +1,101 @@
 #!/usr/bin/env python
 
 import argparse
-from tensorflow.python.ops.gen_dataset_ops import ZipDataset
-from tensorflow.python.keras.models import Model
+
+# from tensorflow.python.ops.gen_dataset_ops import ZipDataset
+# from tensorflow.python.keras.models import Model
+
 # from tensorflow.python.keras.preprocessing.image import ImageDataGenerator
 
-from .rcnn_model import compile_model
+from rcnn_model import FeynmanModel
+
+import os
+import tensorflow as tf
+import numpy as np
+
+NUM_CLASSES = 2
+BATCH_SIZE = 10
+NUM_EPOCHS = 10
 
 
-def train_data_setup(data_dir: str, labels_dir: str):
-    # Set up data augmentation
-    data_gen_args = dict(
-        rescale=1.0 / 255,  # normalize pixel values
-        rotation_range=20,  # randomly rotate images
-        width_shift_range=0.1,  # randomly shift images horizontally
-        height_shift_range=0.1,  # randomly shift images vertically
-        zoom_range=0.1,  # randomly zoom images
-        horizontal_flip=True,
-    )  # randomly flip images
-
-    image_data_generator = ImageDataGenerator(**data_gen_args)
-    mask_data_generator = ImageDataGenerator(**data_gen_args)
-
-    batch_size = 8
-
-    image_generator = image_data_generator.flow_from_directory(
-        data_dir,
-        class_mode=None,
-        batch_size=batch_size,
-        seed=1,
-    )
-
-    mask_generator = mask_data_generator.flow_from_directory(
-        labels_dir,
-        class_mode=None,
-        color_mode="grayscale",
-        batch_size=batch_size,
-        seed=1,
-    )
-
-    train_generator = ZipDataset(image_generator, mask_generator)
-
-    return train_generator, image_generator, mask_generator
+def create_dataset(image_filenames, data_dir, labels_dir, batch_size):
+    dataset = tf.data.Dataset.from_tensor_slices(image_filenames)
+    dataset = dataset.map(lambda x: load_image_and_label(x, data_dir, labels_dir))
+    dataset = dataset.batch(batch_size)
+    return dataset
 
 
-def train_model(
-    model: Model, train_generator, image_generator, mask_generator, epochs: int = 10
+def load_image_and_label(image_filename, data_dir, labels_dir):
+    image = tf.io.read_file(os.path.join(data_dir, image_filename))
+    image = tf.image.decode_jpeg(image, channels=3)
+    image = tf.cast(image, tf.float32) / 255.0
+
+    label_filename = image_filename.numpy().decode("utf-8") + ".txt"
+    label_filepath = os.path.join(labels_dir, label_filename)
+    label = np.loadtxt(label_filepath, delimiter=" ")
+    label = np.expand_dims(label, axis=2)
+    label = tf.convert_to_tensor(label, dtype=tf.float32)
+
+    return image, label
+
+
+def train(
+    model: FeynmanModel,
+    data_dir: str,
+    labels_dir: str,
+    batch_size: int,
+    num_epochs: int,
+    validation_split: float = 0.2,
 ):
-    steps_per_epoch = len(image_generator)
-    model.fit(train_generator, epochs=epochs, steps_per_epoch=steps_per_epoch)
+    # Get the list of image filenames from the data directory
+    image_filenames = sorted(os.listdir(data_dir))
+
+    # Split the data into training and validation sets
+    num_validation_samples = int(validation_split * len(image_filenames))
+    train_image_filenames = image_filenames[:-num_validation_samples]
+    val_image_filenames = image_filenames[-num_validation_samples:]
+
+    # Prepare the training and validation datasets
+    train_dataset = create_dataset(
+        train_image_filenames, data_dir, labels_dir, batch_size
+    )
+    val_dataset = create_dataset(val_image_filenames, data_dir, labels_dir, batch_size)
+
+    model.compile_model()  # Compile the model
+
+    # Set up callbacks for saving model checkpoints
+    checkpoint_dir = "./checkpoints"
+    os.makedirs(checkpoint_dir, exist_ok=True)
+    checkpoint_prefix = os.path.join(checkpoint_dir, "ckpt")
+    checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
+        filepath=checkpoint_prefix, save_weights_only=True, save_best_only=True
+    )
+
+    # Start training
+    model.fit(
+        train_dataset,
+        validation_data=val_dataset,
+        epochs=num_epochs,
+        callbacks=[checkpoint_callback],
+        verbose=1,
+    )
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--data", help="Data directory")
-    parser.add_argument("--labels", help="Labels directory")
+    parser.add_argument(
+        "--data", help="Data directory", default="dataset/train/images/"
+    )
+    parser.add_argument(
+        "--labels", help="Labels directory", default="dataset/train/labels/"
+    )
     args = parser.parse_args()
 
-    model = compile_model()
-    train_generator, image_generator, mask_generator = train_data_setup(
-        args.data, args.labels
+    model = FeynmanModel(num_classes=NUM_CLASSES)
+    train(
+        model,
+        data_dir=args.data,
+        labels_dir=args.labels,
+        batch_size=BATCH_SIZE,
+        num_epochs=NUM_EPOCHS,
     )
-    train_model(model, train_generator, image_generator, mask_generator)
-    model.save("feynman.h5")
