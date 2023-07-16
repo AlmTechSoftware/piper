@@ -81,7 +81,7 @@ class FeynmanModel(tf.keras.Model):
         output = self.conv10(x13)
         return tf.image.resize(output, tf.shape(inputs)[1:3])
 
-    def segment_image(self, image):
+    def preprocess_image(self, image):
         # Preprocess the image
         image = (
             image.astype(np.float32) / 255.0
@@ -93,6 +93,12 @@ class FeynmanModel(tf.keras.Model):
 
         # Expand dimensions to match the model's input shape
         image_expanded = np.expand_dims(image_resized, axis=0)
+
+        return image_expanded
+
+    def segment_image(self, image):
+        # Preprocess the image
+        image_expanded = self.preprocess_image(image)
 
         # Perform inference
         segmentation_map = self.predict(image_expanded)
@@ -135,14 +141,7 @@ class FeynmanModel(tf.keras.Model):
             def load_image(image_path: str):
                 # Load the JPEG image
                 image = tf.io.decode_jpeg(tf.io.read_file(image_path), channels=3)
-                image = tf.cast(image, tf.float32) / 255.0
-
-                # Resize the image to match the model's input shape
-                target_height, target_width = self.conv1.input_shape[1:3]
-                image_resized = tf.image.resize(image, [target_height, target_width])
-
-                # Expand dimensions to match the model's input shape
-                image_expanded = np.expand_dims(image_resized, axis=0)
+                image_expanded = self.preprocess_image(image)
 
                 return image_expanded
 
