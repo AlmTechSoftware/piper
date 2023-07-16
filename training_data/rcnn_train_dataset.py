@@ -1,22 +1,15 @@
 #!/usr/bin/env python
 
-import argparse
-from typing import List
-
-# from tensorflow.python.ops.gen_dataset_ops import ZipDataset
-# from tensorflow.python.keras.models import Model
-
-# from tensorflow.python.keras.preprocessing.image import ImageDataGenerator
-
-from rcnn_model import FeynmanModel
-
 import os
 import tensorflow as tf
 import numpy as np
+import argparse
+
+from rcnn_model import FeynmanModel
+
 
 NUM_CLASSES = 2
-BATCH_SIZE = 10
-NUM_EPOCHS = 10
+NUM_EPOCHS = 10e10
 
 
 def load_dataset(image_filenames: list[str], image_dir: str, labels_dir: str):
@@ -47,7 +40,6 @@ def train(
     model: FeynmanModel,
     images_dir: str,
     labels_dir: str,
-    batch_size: int,
     num_epochs: int,
     validation_split: float = 0.2,
 ):
@@ -98,6 +90,5 @@ if __name__ == "__main__":
         model,
         images_dir=args.data,
         labels_dir=args.labels,
-        batch_size=BATCH_SIZE,
         num_epochs=NUM_EPOCHS,
     )
