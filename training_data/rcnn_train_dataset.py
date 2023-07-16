@@ -9,29 +9,46 @@ from rcnn_model import FeynmanModel
 
 
 NUM_CLASSES = 2
-NUM_EPOCHS = 10e10
+NUM_EPOCHS = 10
 
 
 def load_dataset(image_filenames: list[str], image_dir: str, labels_dir: str):
-    dataset = []
+    image_paths = [os.path.join(image_dir, filename) for filename in image_filenames]
+    label_paths = [
+        os.path.join(labels_dir, f"{os.path.splitext(filename)[0]}.txt")
+        for filename in image_filenames
+    ]
 
-    for filename in image_filenames:
-        image_path = os.path.join(image_dir, filename)
-        label_path = os.path.join(labels_dir, f"{os.path.splitext(filename)[0]}.txt")
-
-        # Load the image
+    def load_image(image_path: str):
         image = tf.io.decode_jpeg(tf.io.read_file(image_path), channels=3)
         image = tf.cast(image, tf.float32) / 255.0
+        return image
 
-        # Load the label
+    def load_label(label_path: str):
         if os.path.exists(label_path):
             with open(label_path, "r") as f:
                 label_values = [float(value) for value in f.read().split()]
-            label = np.array(label_values, dtype=np.float32)
+            label = np.array(label_values, dtype=np.float32).reshape((-1, 2))
+            return label
         else:
-            label = None
+            return None
 
-        dataset.append((image, label))
+    # image_dataset = map(load_image, image_paths)
+    # label_dataset = map(load_label, label_paths)
+
+    image_dataset = tf.data.Dataset.from_generator(
+        lambda: (load_image(path) for path in image_paths),
+        output_signature=tf.TensorSpec(shape=(), dtype=tf.float32),
+    )
+
+    label_dataset = tf.data.Dataset.from_generator(
+        lambda: (load_label(path) for path in label_paths),
+        output_signature=tf.TensorSpec(shape=(None, 2), dtype=tf.float32),
+    ).filter(
+        lambda x: x is not None
+    )  # Filter out None values
+
+    dataset = tf.data.Dataset.zip((image_dataset, label_dataset))
 
     return dataset
 
@@ -55,7 +72,8 @@ def train(
     train_dataset = load_dataset(train_image_filenames, images_dir, labels_dir)
     val_dataset = load_dataset(val_image_filenames, images_dir, labels_dir)
 
-    model.compile_model()  # Compile the model
+    # Compile the model for training
+    model.compile_model()
 
     # Set up callbacks for saving model checkpoints
     checkpoint_dir = "./checkpoints"

@@ -30,17 +30,18 @@ class FeynmanModel(tf.keras.Model):
         self.dropout = Dropout(0.5)
 
         # Decoder
+        self.concat = lambda l: concatenate(l, axis=3)
         self.upconv1 = Conv2DTranspose(512, 2, strides=(2, 2), padding="same")
-        self.concat1 = concatenate([self.conv4, self.upconv1], axis=3)
+        # self.concat1 = concatenate([self.conv4, self.upconv1], axis=3)
         self.conv6 = Conv2D(512, 3, activation="relu", padding="same")
         self.upconv2 = Conv2DTranspose(256, 2, strides=(2, 2), padding="same")
-        self.concat2 = concatenate([self.conv3, self.upconv2], axis=3)
+        # self.concat2 = concatenate([self.conv3, self.upconv2], axis=3)
         self.conv7 = Conv2D(256, 3, activation="relu", padding="same")
         self.upconv3 = Conv2DTranspose(128, 2, strides=(2, 2), padding="same")
-        self.concat3 = concatenate([self.conv2, self.upconv3], axis=3)
+        # self.concat3 = concatenate([self.conv2, self.upconv3], axis=3)
         self.conv8 = Conv2D(128, 3, activation="relu", padding="same")
         self.upconv4 = Conv2DTranspose(64, 2, strides=(2, 2), padding="same")
-        self.concat4 = concatenate([self.conv1, self.upconv4], axis=3)
+        # self.concat4 = concatenate([self.conv1, self.upconv4], axis=3)
         self.conv9 = Conv2D(64, 3, activation="relu", padding="same")
 
         # Output
@@ -63,16 +64,16 @@ class FeynmanModel(tf.keras.Model):
 
         # Decoder
         x6 = self.upconv1(x5_dropout)
-        x6_concat = self.concat1([x4, x6])
+        x6_concat = self.concat([x4, x6])
         x7 = self.conv6(x6_concat)
         x8 = self.upconv2(x7)
-        x8_concat = self.concat2([x3, x8])
+        x8_concat = self.concat([x3, x8])
         x9 = self.conv7(x8_concat)
         x10 = self.upconv3(x9)
-        x10_concat = self.concat3([x2, x10])
+        x10_concat = self.concat([x2, x10])
         x11 = self.conv8(x10_concat)
         x12 = self.upconv4(x11)
-        x12_concat = self.concat4([x1, x12])
+        x12_concat = self.concat([x1, x12])
         x13 = self.conv9(x12_concat)
 
         # Output
@@ -80,8 +81,10 @@ class FeynmanModel(tf.keras.Model):
         return tf.image.resize(output, tf.shape(inputs)[1:3])
 
     def segment_image(self, image):
-        # Preprocess the image 
-        image = image.astype(np.float32) / 255.0  # Normalize pixel values between 0 and 1
+        # Preprocess the image
+        image = (
+            image.astype(np.float32) / 255.0
+        )  # Normalize pixel values between 0 and 1
 
         # Resize the image to match the model's input shape
         target_height, target_width = self.conv1.input_shape[1:3]
