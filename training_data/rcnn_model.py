@@ -1,4 +1,5 @@
 import tensorflow as tf
+import os
 import numpy as np
 from tensorflow.python.keras.layers import (
     Conv2D,
@@ -107,7 +108,92 @@ class FeynmanModel(tf.keras.Model):
             optimizer="adam", loss="categorical_crossentropy", metrics=["accuracy"]
         )
 
+    def train(
+        self,
+        images_dir: str,
+        labels_dir: str,
+        num_epochs: int,
+        validation_split: float = 0.2,
+    ):
+        # Get the list of image filenames from the data directory
+        image_filenames = sorted(os.listdir(images_dir))
 
-if __name__ == "__main__":
-    x = FeynmanModel(2)
-    x.compile_model()
+        # Split the data into training and validation sets
+        num_validation_samples = int(validation_split * len(image_filenames))
+        train_image_filenames = image_filenames[:-num_validation_samples]
+        val_image_filenames = image_filenames[-num_validation_samples:]
+
+        def load_dataset(image_filenames: list[str], image_dir: str, labels_dir: str):
+            image_paths = [
+                os.path.join(image_dir, filename) for filename in image_filenames
+            ]
+            label_paths = [
+                os.path.join(labels_dir, f"{os.path.splitext(filename)[0]}.txt")
+                for filename in image_filenames
+            ]
+
+            def load_image(image_path: str):
+                # Load the JPEG image
+                image = tf.io.decode_jpeg(tf.io.read_file(image_path), channels=3)
+                image = tf.cast(image, tf.float32) / 255.0
+
+                # Resize the image to match the model's input shape
+                target_height, target_width = self.conv1.input_shape[1:3]
+                image_resized = tf.image.resize(image, [target_height, target_width])
+
+                # Expand dimensions to match the model's input shape
+                image_expanded = np.expand_dims(image_resized, axis=0)
+
+                return image_expanded
+
+            def load_label(label_path: str):
+                if os.path.exists(label_path):
+                    with open(label_path, "r") as f:
+                        label_values = [float(value) for value in f.read().split()]
+                    label = np.array(label_values, dtype=np.float32).reshape((-1, 2))
+                    return label
+                else:
+                    return None
+
+            # image_dataset = map(load_image, image_paths)
+            # label_dataset = map(load_label, label_paths)
+
+            image_dataset = tf.data.Dataset.from_generator(
+                lambda: (load_image(path) for path in image_paths),
+                output_signature=tf.TensorSpec(shape=(), dtype=tf.float32),
+            )
+
+            label_dataset = tf.data.Dataset.from_generator(
+                lambda: (load_label(path) for path in label_paths),
+                output_signature=tf.TensorSpec(shape=(None, 2), dtype=tf.float32),
+            ).filter(
+                lambda x: x is not None
+            )  # Filter out None values
+
+            dataset = tf.data.Dataset.zip((image_dataset, label_dataset))
+
+            return dataset
+
+        # Setup the datasets
+        train_dataset = load_dataset(train_image_filenames, images_dir, labels_dir)
+        val_dataset = load_dataset(val_image_filenames, images_dir, labels_dir)
+
+        # Compile the model for training
+        self.compile_model()
+
+        # Set up callbacks for saving model checkpoints
+        checkpoint_dir = "./checkpoints"
+        os.makedirs(checkpoint_dir, exist_ok=True)
+        checkpoint_prefix = os.path.join(checkpoint_dir, "ckpt")
+        checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
+            filepath=checkpoint_prefix, save_weights_only=True, save_best_only=True
+        )
+
+        # Start training
+        self.fit(
+            train_dataset,
+            validation_data=val_dataset,
+            epochs=num_epochs,
+            callbacks=[checkpoint_callback],
+            verbose=1,
+        )
