@@ -17,17 +17,19 @@ def load_image_and_label(image_path: str, label_path: str):
 
     if label_path is not None:
         label_mask = cv2.imread(label_path, cv2.IMREAD_GRAYSCALE)
-        label_mask = label_mask.astype(np.float32) / 255.0  # Convert to a float mask (0.0 or 1.0)
+        label_mask = (
+            label_mask.astype(np.float32) / 255.0
+        )  # Convert to a float mask (0.0 or 1.0)
         return image, label_mask
     else:
         return image, None
 
 
-def load_dataset(image_filenames: list[str], images_dir: str, labels_dir: str):
+def load_dataset(image_filenames: list[str], images_dir: str):
     image_paths = [os.path.join(images_dir, filename) for filename in image_filenames]
 
     label_paths = [
-        os.path.join(labels_dir, f"{os.path.splitext(filename)[0]}_mask.png")
+        os.path.join(images_dir, f"{os.path.splitext(filename)[0]}_mask.png")
         for filename in image_filenames
     ]
     # dataset = tf.data.Dataset.from_tensor_slices((image_paths, label_paths))
@@ -52,7 +54,6 @@ def augment_data(image, label):
 def train_model(
     model,
     images_dir,
-    labels_dir,
     num_epochs=10,
     batch_size=16,
     validation_split=0.2,
@@ -62,8 +63,8 @@ def train_model(
     train_image_filenames = image_filenames[:-num_validation_samples]
     val_image_filenames = image_filenames[-num_validation_samples:]
 
-    train_dataset = load_dataset(train_image_filenames, images_dir, labels_dir)
-    val_dataset = load_dataset(val_image_filenames, images_dir, labels_dir)
+    train_dataset = load_dataset(train_image_filenames, images_dir)
+    val_dataset = load_dataset(val_image_filenames, images_dir)
 
     # Augmentation for training dataset (you can customize this part)
     train_dataset = train_dataset.map(augment_data)
@@ -99,12 +100,7 @@ def train_model(
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--data", help="Data directory", default="dataset/train/images/"
-    )
-    parser.add_argument(
-        "--labels", help="Labels directory", default="dataset/train/labels/"
-    )
+    parser.add_argument("--data", help="Dataset directory", default="dataset/")
     parser.add_argument("--epochs", help="Number of training epochs", default=10)
     args = parser.parse_args()
 
@@ -113,4 +109,4 @@ if __name__ == "__main__":
     print("\n" * 4)
 
     model = FeynmanModel(num_classes=NUM_CLASSES)
-    train_model(model, args.data, args.labels)
+    train_model(model, args.data)
