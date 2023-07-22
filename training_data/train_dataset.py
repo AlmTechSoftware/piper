@@ -19,6 +19,7 @@ def load_image(path: str):
 
 
 def load_image_and_label(image_path: str, label_path: str):
+    print(f"proc \n{image_path=}\n{label_path=}\n")
     return load_image(image_path), load_image(label_path)
 
 
@@ -26,7 +27,7 @@ def load_dataset(image_filenames: list[str], images_dir: str):
     image_paths = [os.path.join(images_dir, filename) for filename in image_filenames]
 
     label_paths = [
-        os.path.join(images_dir, f"{os.path.splitext(filename)[0]}_mask.png")
+        os.path.join(images_dir, f"labels/{os.path.splitext(filename)[0]}_mask.png")
         for filename in image_filenames
     ]
     # dataset = tf.data.Dataset.from_tensor_slices((image_paths, label_paths))
