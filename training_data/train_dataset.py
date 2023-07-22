@@ -11,18 +11,15 @@ from fcn_model import FeynmanModel
 NUM_CLASSES = 2
 
 
-def load_image_and_label(image_path: str, label_path: str):
-    image = tf.io.decode_jpeg(tf.io.read_file(image_path), channels=3)
+def load_image(path: str):
+    image = tf.io.decode_png(tf.io.read_file(path), channels=3)
     image = FeynmanModel.preprocess_image(image)
 
-    if label_path is not None:
-        label_mask = cv2.imread(label_path, cv2.IMREAD_GRAYSCALE)
-        label_mask = (
-            label_mask.astype(np.float32) / 255.0
-        )  # Convert to a float mask (0.0 or 1.0)
-        return image, label_mask
-    else:
-        return image, None
+    return image
+
+
+def load_image_and_label(image_path: str, label_path: str):
+    return load_image(image_path), load_image(label_path)
 
 
 def load_dataset(image_filenames: list[str], images_dir: str):
