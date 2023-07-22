@@ -20,7 +20,9 @@ def load_image(path: str):
 
 def load_image_and_label(image_path: str, label_path: str):
     print(f"proc \n{image_path=}\n{label_path=}\n")
-    return load_image(image_path), load_image(label_path)
+    image = load_image(image_path)
+    label = load_image(label_path)
+    return image, label
 
 
 def validate_filename(filename: str, directory_path: str):
@@ -34,15 +36,27 @@ def load_dataset(image_filenames: list[str], images_dir: str):
     image_paths = [os.path.join(images_dir, filename) for filename in image_filenames]
 
     # Only fetch .png:s
-    image_paths = list(filter(lambda path: validate_filename(path, images_dir), image_paths))
+    image_paths = list(
+        filter(lambda path: validate_filename(path, images_dir), image_paths)
+    )
 
     label_paths = [
         os.path.join(images_dir, f"labels/{os.path.splitext(filename)[0]}_mask.png")
         for filename in image_filenames
     ]
-    # dataset = tf.data.Dataset.from_tensor_slices((image_paths, label_paths))
-    dataset = zip(image_paths, label_paths)
-    dataset = map(lambda s: load_image_and_label(*s), dataset)
+
+    # Remove pairs with missing label files
+    valid_image_label_pairs = [
+        (image_path, label_path)
+        for image_path, label_path in zip(image_paths, label_paths)
+        if os.path.isfile(label_path)
+    ]
+
+    dataset = tf.data.Dataset.from_tensor_slices(valid_image_label_pairs)
+    print(dataset)
+    dataset = dataset.map(
+        lambda image_path, label_path: load_image_and_label(image_path, label_path)
+    )
 
     out_dataset = []
     for image, label in dataset:
@@ -52,7 +66,7 @@ def load_dataset(image_filenames: list[str], images_dir: str):
             print("One image failed to have a label!")
 
     print("Dataset loading done.")
-    return dataset
+    return tf.data.Dataset.from_tensor_slices(out_dataset)
 
 
 def augment_data(image, label):
@@ -73,6 +87,10 @@ def train_model(
 
     train_dataset = load_dataset(train_image_filenames, images_dir)
     val_dataset = load_dataset(val_image_filenames, images_dir)
+
+    # Augment the data
+    train_dataset = train_dataset.map(augment_data)
+    val_dataset = val_dataset.map(augment_data)
 
     model.compile(
         optimizer="adam",
@@ -99,7 +117,9 @@ def train_model(
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--data", help="Dataset directory", default="dataset/")
-    parser.add_argument("--epochs", help="Number of training epochs", default=10)
+    parser.add_argument(
+        "--epochs", help="Number of training epochs", default=10, type=int
+    )
     args = parser.parse_args()
 
     print("\n" * 4)
@@ -107,4 +127,4 @@ if __name__ == "__main__":
     print("\n" * 4)
 
     model = FeynmanModel(num_classes=NUM_CLASSES)
-    train_model(model, args.data)
+    train_model(model, args.data, num_epochs=args.epochs)

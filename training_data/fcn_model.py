@@ -7,12 +7,10 @@ import numpy as np
 class FeynmanModel(tf.keras.Model):
     def preprocess_image(image):
         image = tf.cast(image, np.float32)
-        if image is not None:
-            image /= 255
-            gray = cv2.cvtColor(image.numpy(), cv2.COLOR_BGR2GRAY)
-            return gray
-        else:
-            error(f"{image=}, image is None. Error or something idunno")
+        image /= 255
+        # gray = cv2.cvtColor(image.numpy(), cv2.COLOR_BGR2GRAY)
+
+        return image
 
     def __init__(self, num_classes):
         super(FeynmanModel, self).__init__()
