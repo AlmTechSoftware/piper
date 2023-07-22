@@ -2,13 +2,13 @@
 
 import argparse
 import tensorflow as tf
-import cv2
 import os
-import numpy as np
 
 from fcn_model import FeynmanModel
 
 NUM_CLASSES = 2
+
+EXTENSION = "png"
 
 
 def load_image(path: str):
@@ -23,8 +23,18 @@ def load_image_and_label(image_path: str, label_path: str):
     return load_image(image_path), load_image(label_path)
 
 
+def validate_filename(filename: str, directory_path: str):
+    return filename.lower().endswith(f".{EXTENSION}") and os.path.isfile(
+        os.path.join(directory_path, filename)
+    )
+
+
 def load_dataset(image_filenames: list[str], images_dir: str):
+    # List all files in the dataset
     image_paths = [os.path.join(images_dir, filename) for filename in image_filenames]
+
+    # Only fetch .png:s
+    image_paths = list(filter(lambda path: validate_filename(path, images_dir), image_paths))
 
     label_paths = [
         os.path.join(images_dir, f"labels/{os.path.splitext(filename)[0]}_mask.png")
@@ -41,6 +51,7 @@ def load_dataset(image_filenames: list[str], images_dir: str):
         else:
             print("One image failed to have a label!")
 
+    print("Dataset loading done.")
     return dataset
 
 
@@ -53,7 +64,6 @@ def train_model(
     model,
     images_dir,
     num_epochs=10,
-    batch_size=16,
     validation_split=0.2,
 ):
     image_filenames = sorted(os.listdir(images_dir))
@@ -63,16 +73,6 @@ def train_model(
 
     train_dataset = load_dataset(train_image_filenames, images_dir)
     val_dataset = load_dataset(val_image_filenames, images_dir)
-
-    # Augmentation for training dataset (you can customize this part)
-    train_dataset = train_dataset.map(augment_data)
-
-    train_dataset = (
-        train_dataset.shuffle(buffer_size=1000)
-        .batch(batch_size)
-        .prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
-    )
-    val_dataset = val_dataset.batch(batch_size)
 
     model.compile(
         optimizer="adam",
