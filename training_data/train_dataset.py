@@ -2,99 +2,70 @@
 
 import argparse
 import tensorflow as tf
+import pycocotools.coco as coco
+import numpy as np
+import cv2
 import os
 
 from fcn_model import FeynmanModel
 
-NUM_CLASSES = 2
-
-EXTENSION = "png"
+NUM_CLASSES = 3
 
 
-def load_image(path: str):
-    image = tf.io.decode_png(tf.io.read_file(path), channels=3)
-    image = FeynmanModel.preprocess_image(image)
-
-    return image
-
-
-def load_image_and_label(image_path: str, label_path: str):
-    print(f"proc \n{image_path=}\n{label_path=}\n")
-    image = load_image(image_path)
-    label = load_image(label_path)
-    return image, label
+def preprocess_coco_image(image_path):
+    image = cv2.imread(image_path)
+    processed_image = FeynmanModel.preprocess_image(image)
+    return processed_image
 
 
-def validate_filename(filename: str, directory_path: str):
-    return filename.lower().endswith(f".{EXTENSION}") and os.path.isfile(
-        os.path.join(directory_path, filename)
-    )
+def preprocess_coco_mask(mask):
+    return mask.astype(np.float32) / 255.0
 
 
-def load_dataset(image_filenames: list[str], images_dir: str):
-    # List all files in the dataset
-    image_paths = [os.path.join(images_dir, filename) for filename in image_filenames]
+def data_generator(
+    coco_dataset: coco.COCO,
+    image_paths: list[str],
+    image_ids: list[int],
+    batch_size: int = 32,
+):
+    num_samples = len(image_paths)
+    while True:
+        batch_indexes = np.random.choice(num_samples, batch_size)
+        batch_images, batch_masks = [], []
+        for index in batch_indexes:
+            image_path = image_paths[index]
+            mask = coco_dataset.annToMask(
+                coco_dataset.loadAnns(coco_dataset.getAnnIds(image_ids[index]))
+            )
+            processed_image = preprocess_coco_image(image_path)
+            processed_mask = preprocess_coco_mask(mask)
+            batch_images.append(processed_image)
+            batch_masks.append(processed_mask)
 
-    # Only fetch .png:s
-    image_paths = list(
-        filter(lambda path: validate_filename(path, images_dir), image_paths)
-    )
-
-    label_paths = [
-        os.path.join(images_dir, f"labels/{os.path.splitext(filename)[0]}_mask.png")
-        for filename in image_filenames
-    ]
-
-    # Remove pairs with missing label files
-    valid_image_label_pairs = [
-        (image_path, label_path)
-        for image_path, label_path in zip(image_paths, label_paths)
-        if os.path.isfile(label_path)
-    ]
-
-    dataset = tf.data.Dataset.from_tensor_slices(valid_image_label_pairs)
-    print(dataset)
-    dataset = dataset.map(
-        lambda image_path, label_path: load_image_and_label(image_path, label_path)
-    )
-
-    out_dataset = []
-    for image, label in dataset:
-        if label is not None:
-            out_dataset.append((image, label))
-        else:
-            print("One image failed to have a label!")
-
-    print("Dataset loading done.")
-    return tf.data.Dataset.from_tensor_slices(out_dataset)
+        yield np.array(batch_images), np.array(batch_masks)
 
 
-def augment_data(image, label):
-    # TODO: add augmentations
-    return image, label
+# Define the Mean Squared Error loss function for segmentation
+def segmentation_loss(y_true, y_pred):
+    return tf.keras.losses.mean_squared_error(y_true, y_pred)
 
 
 def train_model(
-    model,
-    images_dir,
-    num_epochs=10,
-    validation_split=0.2,
+    model: FeynmanModel,
+    annotations_file: str,
+    num_epochs=100,
+    batch_size=32,
 ):
-    image_filenames = sorted(os.listdir(images_dir))
-    num_validation_samples = int(validation_split * len(image_filenames))
-    train_image_filenames = image_filenames[:-num_validation_samples]
-    val_image_filenames = image_filenames[-num_validation_samples:]
-
-    train_dataset = load_dataset(train_image_filenames, images_dir)
-    val_dataset = load_dataset(val_image_filenames, images_dir)
-
-    # Augment the data
-    train_dataset = train_dataset.map(augment_data)
-    val_dataset = val_dataset.map(augment_data)
+    coco_dataset = coco.COCO(annotations_file)
+    # Load image file paths from the dataset
+    image_ids = coco_dataset.getImgIds()
+    image_paths = [
+        coco_dataset.loadImgs(image_id)[0]["file_name"] for image_id in image_ids
+    ]
 
     model.compile(
         optimizer="adam",
-        loss="categorical_crossentropy",  # You should adjust the loss based on your task
+        loss=segmentation_loss,
         metrics=["accuracy"],
     )
 
@@ -106,8 +77,7 @@ def train_model(
     )
 
     model.fit(
-        train_dataset,
-        validation_data=val_dataset,
+        data_generator(coco_dataset, image_paths, image_ids, batch_size),
         epochs=num_epochs,
         callbacks=[checkpoint_callback],
         verbose=1,
