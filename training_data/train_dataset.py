@@ -52,11 +52,13 @@ def segmentation_loss(y_true, y_pred):
 
 def train_model(
     model: FeynmanModel,
-    annotations_file: str,
+    train_file: str,
+    valid_file: str,
+    test_file: str,
     num_epochs=100,
     batch_size=32,
 ):
-    coco_dataset = coco.COCO(annotations_file)
+    coco_dataset = coco.COCO(train_file)
     # Load image file paths from the dataset
     image_ids = coco_dataset.getImgIds()
     image_paths = [
@@ -86,7 +88,9 @@ def train_model(
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--data", help="Dataset directory", default="dataset/")
+    parser.add_argument("--train", help="Training annotations file", default="dataset/train/_annotations.coco.json")
+    parser.add_argument("--valid", help="Validations annotations file", default="dataset/valid/_annotations.coco.json")
+    parser.add_argument("--test", help="Testing annotations file", default="dataset/test/_annotations.coco.json")
     parser.add_argument(
         "--epochs", help="Number of training epochs", default=10, type=int
     )
@@ -97,4 +101,4 @@ if __name__ == "__main__":
     print("\n" * 4)
 
     model = FeynmanModel(num_classes=NUM_CLASSES)
-    train_model(model, args.data, num_epochs=args.epochs)
+    train_model(model, args.train, args.valid, args.test, num_epochs=args.epochs)
