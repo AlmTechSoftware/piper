@@ -88,9 +88,21 @@ def train_model(
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--train", help="Training annotations file", default="dataset/train/_annotations.coco.json")
-    parser.add_argument("--valid", help="Validations annotations file", default="dataset/valid/_annotations.coco.json")
-    parser.add_argument("--test", help="Testing annotations file", default="dataset/test/_annotations.coco.json")
+    parser.add_argument(
+        "--train",
+        help="Training annotations file",
+        default="dataset/train/_annotations.coco.json",
+    )
+    parser.add_argument(
+        "--valid",
+        help="Validations annotations file",
+        default="dataset/valid/_annotations.coco.json",
+    )
+    parser.add_argument(
+        "--test",
+        help="Testing annotations file",
+        default="dataset/test/_annotations.coco.json",
+    )
     parser.add_argument(
         "--epochs", help="Number of training epochs", default=10, type=int
     )
