@@ -66,11 +66,19 @@ def load_coco_json(json_file: str) -> COCOJson:
 
 class COCOJsonUtility:
     @staticmethod
-    def get_annotations_by_image_id(coco_data: COCOJson, image_id: int) -> List[COCOAnnotation]:
-        return [annotation for annotation in coco_data.annotations if annotation.image_id == image_id]
+    def get_annotations_by_image_id(
+        coco_data: COCOJson, image_id: int
+    ) -> List[COCOAnnotation]:
+        return [
+            annotation
+            for annotation in coco_data.annotations
+            if annotation.image_id == image_id
+        ]
 
     @staticmethod
-    def get_annotations_by_image_path(coco_data: COCOJson, image_path: str) -> Optional[List[COCOAnnotation]]:
+    def get_annotations_by_image_path(
+        coco_data: COCOJson, image_path: str
+    ) -> Optional[List[COCOAnnotation]]:
         image = COCOJsonUtility.get_image_by_path(coco_data, image_path)
         if image:
             return COCOJsonUtility.get_annotations_by_image_id(coco_data, image.id)
@@ -91,13 +99,8 @@ class COCOJsonUtility:
         for annotation in annotations:
             x_min, y_min, width, height = annotation.bbox
             class_id.append(annotation.category_id)
-            xyxy.append([
-                x_min,
-                y_min,
-                x_min + width,
-                y_min + height
-            ])
+            xyxy.append([x_min, y_min, x_min + width, y_min + height])
 
         return Detections(
-            xyxy=np.array(xyxy, dtype=int),
-            class_id=np.array(class_id, dtype=int)
+            xyxy=np.array(xyxy, dtype=int), class_id=np.array(class_id, dtype=int)
+        )
