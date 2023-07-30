@@ -7,7 +7,7 @@ import cv2
 import os
 
 from fcn_model import FeynmanModel
-from training_data.dataset_handler import load_coco_json
+from training_data.dataset_handler import COCOJsonUtility, load_coco_json
 
 # from dataset_handler import *
 
@@ -16,14 +16,26 @@ ANNOTATIONS_FILE_NAME = "_annotations.coco.json"
 
 def train_model(
     model: FeynmanModel,
-    dataset_path: str = "dataset/",
+    coco_data,
     epochs=100,
     batch_size=32,
 ):
+    # Images that will be used to train the model
+    train_images = [image.file_name for image in coco_data.images]
+
+    # load dataset annotations
+    segments = []
+    segments = COCOJsonUtility.get_annotations_by_image_path(
+        coco_data=coco_data, image_path=EXAMPLE_IMAGE_NAME
+    )
+    ground_truth = COCOJsonUtility.annotations2detections(annotations=annotations)
+
+    # NOTE: fix
+    ground_truth.class_id = ground_truth.class_id - 1
 
     model.compile(
         optimizer="adam",
-        loss=segmentation_loss,
+        loss="categorical_crossentropy",
         metrics=["accuracy"],
     )
 
@@ -53,17 +65,13 @@ if __name__ == "__main__":
     parser.add_argument(
         "--epochs", help="Number of training epochs", default=10, type=int
     )
-    parser.add_argument(
-        "--batch", help="Batch size", default=64, type=int
-    )
+    parser.add_argument("--batch", help="Batch size", default=64, type=int)
     args = parser.parse_args()
 
     print("\n" * 4)
     print("TRAINING BEGIN")
     print("\n" * 4)
 
-
-    
     # train_images_path = os.path.join(dataset_path, "train/")
     annotations_file = os.path.join(dataset_path, ANNOTATIONS_FILE_NAME)
     coco_data = load_coco_json(json_file=annotations_file)
@@ -74,7 +82,5 @@ if __name__ == "__main__":
         if category.supercategory != "none"
     ]
 
-    train_images = [image.file_name for image in coco_data.images]
-
     model = FeynmanModel(num_classes=len(classes))
-    train_model(model, epochs=args.epochs)
+    train_model(model, coco_data, epochs=args.epochs)
