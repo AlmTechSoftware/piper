@@ -84,7 +84,7 @@ class FeynmanModel(nn.Module):
         dataset = COCODataset(dataset_dir=dataset_dir)
         return dataset
 
-    def train(self, dataset_dir: str, epochs=10, batch_size=32):
+    def train(self, dataset_dir, epochs=10, batch_size=32):
         criterion = nn.BCELoss()
         optimizer = optim.Adam(self.parameters(), lr=0.001)
 
