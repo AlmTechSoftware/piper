@@ -1,106 +1,49 @@
+from torch.utils.data import Dataset
+from torchvision import transforms
+from pycocotools import coco
 import numpy as np
-from dataclasses import dataclass
-from typing import List, Tuple, Optional
-from dataclasses_json import dataclass_json
-from supervision import Detections
+import os
+import json
+from PIL import Image
+import torch
 
 
-@dataclass_json
-@dataclass
-class COCOCategory:
-    id: int
-    name: str
-    supercategory: str
-
-
-@dataclass_json
-@dataclass
-class COCOImage:
-    id: int
-    width: int
-    height: int
-    file_name: str
-    license: int
-    date_captured: str
-    coco_url: Optional[str] = None
-    flickr_url: Optional[str] = None
-
-
-@dataclass_json
-@dataclass
-class COCOAnnotation:
-    id: int
-    image_id: int
-    category_id: int
-    segmentation: List[List[float]]
-    area: float
-    bbox: Tuple[float, float, float, float]
-    iscrowd: int
-
-
-@dataclass_json
-@dataclass
-class COCOLicense:
-    id: int
-    name: str
-    url: str
-
-
-@dataclass_json
-@dataclass
-class COCOJson:
-    images: List[COCOImage]
-    annotations: List[COCOAnnotation]
-    categories: List[COCOCategory]
-    licenses: List[COCOLicense]
-
-
-def load_coco_json(json_file: str) -> COCOJson:
-    import json
-
-    with open(json_file, "r") as f:
-        json_data = json.load(f)
-
-    return COCOJson.from_dict(json_data)
-
-
-class COCOJsonUtility:
-    @staticmethod
-    def get_annotations_by_image_id(
-        coco_data: COCOJson, image_id: int
-    ) -> List[COCOAnnotation]:
-        return [
-            annotation
-            for annotation in coco_data.annotations
-            if annotation.image_id == image_id
-        ]
-
-    @staticmethod
-    def get_annotations_by_image_path(
-        coco_data: COCOJson, image_path: str
-    ) -> Optional[List[COCOAnnotation]]:
-        image = COCOJsonUtility.get_image_by_path(coco_data, image_path)
-        if image:
-            return COCOJsonUtility.get_annotations_by_image_id(coco_data, image.id)
-        else:
-            return None
-
-    @staticmethod
-    def get_image_by_path(coco_data: COCOJson, image_path: str) -> Optional[COCOImage]:
-        for image in coco_data.images:
-            if image.file_name == image_path:
-                return image
-        return None
-
-    @staticmethod
-    def annotations2detections(annotations: List[COCOAnnotation]) -> Detections:
-        class_id, xyxy = [], []
-
-        for annotation in annotations:
-            x_min, y_min, width, height = annotation.bbox
-            class_id.append(annotation.category_id)
-            xyxy.append([x_min, y_min, x_min + width, y_min + height])
-
-        return Detections(
-            xyxy=np.array(xyxy, dtype=int), class_id=np.array(class_id, dtype=int)
+class COCODataset(Dataset):
+    def __init__(self, dataset_dir: str):
+        self.dataset_dir = dataset_dir
+        self.transform = transforms.Compose(
+            [
+                transforms.ToTensor(),
+                transforms.Normalize(
+                    # NOTE: ImageNet
+                    mean=[0.485, 0.456, 0.406],
+                    std=[0.229, 0.224, 0.225],
+                ),
+            ]
         )
+        self.coco_data = self.load_coco_data()
+
+    def load_coco_data(self):
+        coco_file_path = os.path.join(self.dataset_dir, "_annotations.coco.json")
+        # coco_data = json.load(open(coco_file_path, "r"))
+        return coco.COCO(coco_file_path)
+
+    def __len__(self):
+        return len(self.coco_data.imgs)
+
+    def __getitem__(self, idx):
+        image_info = list(self.coco_data.imgs.values())[idx]
+        image_path = os.path.join(self.dataset_dir, image_info["file_name"])
+
+        # Load and preprocess the image
+        image = Image.open(image_path).convert("RGB")
+        image = self.transform(image)
+
+        # Load and preprocess the segmentation mask
+        ann_ids = self.coco_data.getAnnIds(imgIds=image_info["id"], iscrowd=None)
+        mask = np.zeros((image_info["height"], image_info["width"]))
+        for ann_id in ann_ids:
+            mask += self.coco_data.annToMask(self.coco_data.anns[ann_id])
+        mask = torch.tensor(mask).unsqueeze(0).float() / 255.0
+
+        return image, mask

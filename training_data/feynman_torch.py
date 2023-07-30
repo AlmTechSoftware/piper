@@ -1,10 +1,13 @@
 import torch
-from pycocotools import coco
 import torch.nn as nn
-import os
-import json
+import torch.nn as nn
+import torch.optim as optim
+
 import numpy as np
-from PIL import Image
+
+from torch.utils.data import DataLoader
+
+from dataset_handler import COCODataset
 
 
 class FeynmanModel(nn.Module):
@@ -77,54 +80,19 @@ class FeynmanModel(nn.Module):
         return output
 
     def load_data(self, dataset_dir: str):
-        # Load COCO format annotations
-        coco_file_path = os.path.join(dataset_dir, "_annotations.coco.json")
-        coco_data = json.load(open(coco_file_path, "r"))
-        coco_data = coco.COCO(coco_file_path)
+        # Load the COCO dataset
+        dataset = COCODataset(dataset_dir=dataset_dir)
+        return dataset
 
-        image_ids = list(coco_data.imgs.keys())
-        num_images = len(image_ids)
-
-        images = []
-        masks = []
-
-        for idx in range(num_images):
-            image_info = coco_data.loadImgs(image_ids[idx])[0]
-            image_path = os.path.join(dataset_dir, "train", image_info["file_name"])
-
-            # Load and preprocess the image
-            image = Image.open(image_path)
-            image = image.resize((self.input_shape[1], self.input_shape[2]))
-            image = torch.tensor(np.array(image)).permute(2, 0, 1).float() / 255.0
-            images.append(image)
-
-            # Load and preprocess the segmentation mask
-            ann_ids = coco_data.getAnnIds(imgIds=image_ids[idx], iscrowd=None)
-            anns = coco_data.loadAnns(ann_ids)
-            mask = coco_data.annToMask(anns[0])
-            for i in range(1, len(anns)):
-                mask += coco_data.annToMask(anns[i])
-            mask = Image.fromarray(mask.astype(np.uint8))
-            mask = mask.resize((self.input_shape[1], self.input_shape[2]))
-            mask = torch.tensor(np.array(mask)).unsqueeze(0).float() / 255.0
-            masks.append(mask)
-
-        images = torch.stack(images)
-        masks = torch.stack(masks)
-
-        return images, masks
-
-    def train(self, dataset_dir, epochs=10, batch_size=32):
+    def train(self, dataset_dir: str, epochs=10, batch_size=32):
         criterion = nn.BCELoss()
-        optimizer = torch.optim.Adam(self.parameters(), lr=0.001)
+        optimizer = optim.Adam(self.parameters(), lr=0.001)
 
-        images, masks = self.load_data(dataset_dir)
+        dataset = self.load_data(dataset_dir)
+        dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
 
         for epoch in range(epochs):
-            for i in range(0, len(images), batch_size):
-                batch_images = images[i : i + batch_size]
-                batch_masks = masks[i : i + batch_size]
-
+            for i, (batch_images, batch_masks) in enumerate(dataloader):
                 optimizer.zero_grad()
                 outputs = self.forward(batch_images)
                 loss = criterion(outputs, batch_masks)
@@ -132,7 +100,7 @@ class FeynmanModel(nn.Module):
                 optimizer.step()
 
                 print(
-                    f"Epoch [{epoch + 1}/{epochs}], Batch [{i//batch_size + 1}/{len(images)//batch_size}], Loss: {loss.item()}"
+                    f"Epoch [{epoch + 1}/{epochs}], Batch [{i + 1}/{len(dataloader)}], Loss: {loss.item()}"
                 )
 
 
