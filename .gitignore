@@ -223,3 +223,4 @@ test.py
 
 # Go workspace file
 go.work
+checkpoints*
