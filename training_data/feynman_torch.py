@@ -8,52 +8,52 @@ from torch.utils.data import DataLoader
 
 from dataset_handler import COCODataset
 
+from .segnet import *
 
+
+# Model definition. We use a SegNet-Basic model with some minor tweaks.
+# Our input images are 128x128.
 class FeynmanModel(nn.Module):
-    def __init__(self, num_classes: int = 3):
-        super(self.__class__, self).__init__()
-        
-        # Encoder
-        self.encoder = nn.Sequential(
-            nn.Conv2d(3, 64, kernel_size=3, padding=1),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(64, 128, kernel_size=3, padding=1),
-            nn.ReLU(inplace=True),
-            nn.MaxPool2d(kernel_size=2, stride=2)
-        )
-        
-        # Middle
-        self.middle = nn.Sequential(
-            nn.Conv2d(128, 256, kernel_size=3, padding=1),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(256, 256, kernel_size=3, padding=1),
-            nn.ReLU(inplace=True),
-            nn.MaxPool2d(kernel_size=2, stride=2)
-        )
-        
-        # Decoder
-        self.decoder = nn.Sequential(
-            nn.Conv2d(256, 128, kernel_size=3, padding=1),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(128, 64, kernel_size=3, padding=1),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(64, num_classes, kernel_size=1)
-        )
-        
-    def forward(self, x):
-        # Encoder
-        x1 = self.encoder(x)
-        
-        # Middle
-        x2 = self.middle(x1)
-        
-        # Decoder
-        x3 = self.decoder(x2)
-        
-        # Upsample to original size
-        x3 = nn.functional.interpolate(x3, scale_factor=2, mode='bilinear', align_corners=False)
-        
-        return x3
+    def __init__(self, kernel_size):
+        super().__init__()
+        self.out_channels = 3
+        self.bn_input = nn.BatchNorm2d(3)
+        self.dc1 = DownConv2(3, 64, kernel_size=kernel_size)
+        self.dc2 = DownConv2(64, 128, kernel_size=kernel_size)
+        self.dc3 = DownConv3(128, 256, kernel_size=kernel_size)
+        self.dc4 = DownConv3(256, 512, kernel_size=kernel_size)
+        # self.dc5 = DownConv3(512, 512, kernel_size=kernel_size)
+
+        # self.uc5 = UpConv3(512, 512, kernel_size=kernel_size)
+        self.uc4 = UpConv3(512, 256, kernel_size=kernel_size)
+        self.uc3 = UpConv3(256, 128, kernel_size=kernel_size)
+        self.uc2 = UpConv2(128, 64, kernel_size=kernel_size)
+        self.uc1 = UpConv2(64, 3, kernel_size=kernel_size)
+
+    def forward(self, batch: torch.Tensor):
+        x = self.bn_input(batch)
+        # x = batch
+        # SegNet Encoder
+        x, mp1_indices, shape1 = self.dc1(x)
+        x, mp2_indices, shape2 = self.dc2(x)
+        x, mp3_indices, shape3 = self.dc3(x)
+        x, mp4_indices, shape4 = self.dc4(x)
+        # Our images are 128x128 in dimension. If we run 4 max pooling
+        # operations, we are down to 128/16 = 8x8 activations. If we
+        # do another down convolution, we'll be at 4x4 and at that point
+        # in time, we may lose too much spatial information as a result
+        # of the MaxPooling operation, so we stop at 4 down conv
+        # operations.
+        # x, mp5_indices, shape5 = self.dc5(x)
+
+        # SegNet Decoder
+        # x = self.uc5(x, mp5_indices, output_size=shape5)
+        x = self.uc4(x, mp4_indices, output_size=shape4)
+        x = self.uc3(x, mp3_indices, output_size=shape3)
+        x = self.uc2(x, mp2_indices, output_size=shape2)
+        x = self.uc1(x, mp1_indices, output_size=shape1)
+
+        return x
 
     @staticmethod
     def load_data(dataset_dir: str):
