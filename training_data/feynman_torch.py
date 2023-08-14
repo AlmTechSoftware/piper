@@ -7,8 +7,7 @@ import numpy as np
 from torch.utils.data import DataLoader
 
 from dataset_handler import COCODataset
-
-from .segnet import *
+from segnet import *
 
 
 # Model definition. We use a SegNet-Basic model with some minor tweaks.
@@ -80,7 +79,3 @@ class FeynmanModel(nn.Module):
                     f"Epoch [{epoch + 1}/{epochs}], Batch [{i + 1}/{len(dataloader)}], Loss: {loss.item()}"
                 )
 
-
-# Usage:
-model = FeynmanModel(3)
-model.train(dataset_dir="./dataset/train/", epochs=10, batch_size=32)
