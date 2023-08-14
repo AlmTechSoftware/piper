@@ -17,13 +17,14 @@ class FeynmanModel(nn.Module):
         super().__init__()
         self.out_channels = 3
         self.bn_input = nn.BatchNorm2d(3)
+
+        # Encoder
         self.dc1 = DownConv2(3, 64, kernel_size=kernel_size)
         self.dc2 = DownConv2(64, 128, kernel_size=kernel_size)
         self.dc3 = DownConv3(128, 256, kernel_size=kernel_size)
         self.dc4 = DownConv3(256, 512, kernel_size=kernel_size)
-        # self.dc5 = DownConv3(512, 512, kernel_size=kernel_size)
 
-        # self.uc5 = UpConv3(512, 512, kernel_size=kernel_size)
+        # Decoder
         self.uc4 = UpConv3(512, 256, kernel_size=kernel_size)
         self.uc3 = UpConv3(256, 128, kernel_size=kernel_size)
         self.uc2 = UpConv2(128, 64, kernel_size=kernel_size)
