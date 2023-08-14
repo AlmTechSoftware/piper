@@ -1,18 +1,19 @@
+import os
+from typing import Tuple
+import torch
+import numpy as np
 from torch.utils.data import Dataset
 from torchvision import transforms
-from pycocotools import coco
-import numpy as np
-import os
-import json
 from PIL import Image
-import torch
+import pycocotools.coco as coco
 
 
 class COCODataset(Dataset):
-    def __init__(self, dataset_dir: str):
+    def __init__(self, dataset_dir: str, img_size: Tuple[int, int] = (128, 128)):
         self.dataset_dir = dataset_dir
         self.transform = transforms.Compose(
             [
+                # transforms.Resize(img_size),
                 transforms.ToTensor(),
                 transforms.Normalize(
                     # NOTE: ImageNet
