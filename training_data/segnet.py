@@ -2,7 +2,7 @@ import torch.nn as nn
 
 
 class DownConv2(nn.Module):
-    def __init__(self, chin, chout, kernel_size):
+    def __init__(self, chin: int, chout: int, kernel_size: int):
         super().__init__()
         self.seq = nn.Sequential(
             nn.Conv2d(
@@ -34,7 +34,7 @@ class DownConv2(nn.Module):
 
 
 class DownConv3(nn.Module):
-    def __init__(self, chin, chout, kernel_size):
+    def __init__(self, chin: int, chout: int, kernel_size: int):
         super().__init__()
         self.seq = nn.Sequential(
             nn.Conv2d(
@@ -75,7 +75,7 @@ class DownConv3(nn.Module):
 
 
 class UpConv2(nn.Module):
-    def __init__(self, chin, chout, kernel_size):
+    def __init__(self, chin: int, chout: int, kernel_size: int):
         super().__init__()
         self.seq = nn.Sequential(
             nn.Conv2d(
@@ -106,7 +106,7 @@ class UpConv2(nn.Module):
 
 
 class UpConv3(nn.Module):
-    def __init__(self, chin, chout, kernel_size):
+    def __init__(self, chin: int, chout: int, kernel_size: int):
         super().__init__()
         self.seq = nn.Sequential(
             nn.Conv2d(

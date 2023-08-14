@@ -1,8 +1,10 @@
-import torch
+import logging
 import torch.nn as nn
 import torch.optim as optim
 
-import numpy as np
+from torch import Tensor
+
+# import numpy as np
 
 from torch.utils.data import DataLoader
 
@@ -13,7 +15,7 @@ from segnet import *
 # Model definition. We use a SegNet-Basic model with some minor tweaks.
 # Our input images are 128x128.
 class FeynmanModel(nn.Module):
-    def __init__(self, kernel_size):
+    def __init__(self, kernel_size: int):
         super().__init__()
         self.out_channels = 3
         self.bn_input = nn.BatchNorm2d(3)
@@ -30,20 +32,12 @@ class FeynmanModel(nn.Module):
         self.uc2 = UpConv2(128, 64, kernel_size=kernel_size)
         self.uc1 = UpConv2(64, 3, kernel_size=kernel_size)
 
-    def forward(self, batch: torch.Tensor):
+    def forward(self, batch: Tensor):
         x = self.bn_input(batch)
-        # x = batch
-        # SegNet Encoder
         x, mp1_indices, shape1 = self.dc1(x)
         x, mp2_indices, shape2 = self.dc2(x)
         x, mp3_indices, shape3 = self.dc3(x)
         x, mp4_indices, shape4 = self.dc4(x)
-        # Our images are 128x128 in dimension. If we run 4 max pooling
-        # operations, we are down to 128/16 = 8x8 activations. If we
-        # do another down convolution, we'll be at 4x4 and at that point
-        # in time, we may lose too much spatial information as a result
-        # of the MaxPooling operation, so we stop at 4 down conv
-        # operations.
         # x, mp5_indices, shape5 = self.dc5(x)
 
         # SegNet Decoder
@@ -76,7 +70,6 @@ class FeynmanModel(nn.Module):
                 loss.backward()
                 optimizer.step()
 
-                print(
+                logging.debug(
                     f"Epoch [{epoch + 1}/{epochs}], Batch [{i + 1}/{len(dataloader)}], Loss: {loss.item()}"
                 )
-
