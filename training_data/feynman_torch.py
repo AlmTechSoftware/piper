@@ -64,6 +64,7 @@ class FeynmanModel(nn.Module):
 
         for epoch in range(epochs):
             for i, (batch_images, batch_masks) in enumerate(dataloader):
+                logging.debug(f"{epoch+1} - {i+1}")
                 optimizer.zero_grad()
                 outputs = self.forward(batch_images)
                 loss = criterion(outputs, batch_masks)
@@ -71,5 +72,5 @@ class FeynmanModel(nn.Module):
                 optimizer.step()
 
                 logging.debug(
-                    f"Epoch [{epoch + 1}/{epochs}], Batch [{i + 1}/{len(dataloader)}], Loss: {loss.item()}"
+                    f"\tEpoch [{epoch + 1}/{epochs}], Batch [{i + 1}/{len(dataloader)}], Loss: {loss.item()}"
                 )
