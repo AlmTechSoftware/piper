@@ -19,10 +19,12 @@ logging.basicConfig(
     format=f"{Back.rgb(80, 200, 80)} FeynMAN {Style.reset} [{Fore.rgb(255, 240, 240)}%(levelname)s{Style.reset}] %(message)s",
 )
 
+
 def load_data(dataset_dir: str):
     # Load the COCO dataset
     dataset = COCODataset(dataset_dir=dataset_dir)
     return dataset
+
 
 def train_model(model, dataset_dir: str, epochs=10, batch_size=32):
     criterion = nn.BCELoss()
@@ -32,6 +34,7 @@ def train_model(model, dataset_dir: str, epochs=10, batch_size=32):
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model = model.to(device)
     for epoch in range(epochs):
         model.train()
         running_loss = 0.0
