@@ -33,14 +33,12 @@ def train_model(model, dataset_dir: str, epochs=10, batch_size=32):
     dataset = load_data(dataset_dir)
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = model.to(device)
     for epoch in range(epochs):
         model.train()
         running_loss = 0.0
 
         for batch_idx, (images, masks) in enumerate(dataloader):
-            images, masks = images.to(device), masks.to(device).long()
+            images, masks = images.cuda(), masks.cuda().long()
 
             # Forward pass
             outputs = model(images)
@@ -63,7 +61,7 @@ def train_model(model, dataset_dir: str, epochs=10, batch_size=32):
 def main():
     # Usage:
     logging.info("Creating model...")
-    model = FeynmanModel(6)
+    model = FeynmanModel(3).cuda()
 
     # device_type = "cuda" if torch.cuda.is_available() else "cpu"
     # logging.debug(f"Doing training on device type '{device_type}'!")
