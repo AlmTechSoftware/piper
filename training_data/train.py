@@ -6,6 +6,7 @@ from feynman_torch import FeynmanModel
 
 from colored import Fore, Back, Style
 
+import torch
 import torch.nn as nn
 import torch.optim as optim
 
@@ -64,12 +65,12 @@ def main():
     logging.info("Creating model...")
     model = FeynmanModel(3).cuda()
 
-    # device_type = "cuda" if torch.cuda.is_available() else "cpu"
-    # # device_type = "cpu"
-    # logging.debug(f"Doing training on device type '{device_type}'!")
-    # device = torch.device(device_type)
-    #
-    # model = model.to(device)
+    device_type = "cuda" if torch.cuda.is_available() else "cpu"
+    # device_type = "cpu"
+    logging.debug(f"Doing training on device type '{device_type}'!")
+    device = torch.device(device_type)
+
+    model = model.to(device)
 
     logging.info("START TRAINING!")
     train_model(model, dataset_dir="./dataset/train/", epochs=10, batch_size=2)
