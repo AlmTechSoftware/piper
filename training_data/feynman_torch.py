@@ -10,6 +10,9 @@ class FeynmanModel(nn.Module):
         self.backbone.classifier[4] = nn.Conv2d(
             512, num_classes, kernel_size=(1, 1), stride=(1, 1)
         )
+        self.sigmoid = nn.Sigmoid()
 
     def forward(self, x):
-        return self.backbone(x)["out"]
+        res = self.backbone(x)["out"]
+        res = self.sigmoid(res)
+        return res
