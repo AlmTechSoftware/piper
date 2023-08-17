@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 import logging
-import torch
 from torch.utils.data import DataLoader
 from feynman_torch import FeynmanModel
 
@@ -26,7 +25,13 @@ def load_data(dataset_dir: str):
     return dataset
 
 
-def train_model(model, dataset_dir: str, epochs=10, batch_size=32):
+def train_model(
+    model: nn.Module,
+    dataset_dir: str,
+    epochs: int = 10,
+    batch_size: int = 32,
+    device: torch.device = torch.device("cuda"),
+):
     criterion = nn.BCELoss()
     optimizer = optim.Adam(model.parameters(), lr=0.001)
 
@@ -38,20 +43,26 @@ def train_model(model, dataset_dir: str, epochs=10, batch_size=32):
         running_loss = 0.0
 
         for batch_idx, (images, masks) in enumerate(dataloader):
-            images, masks = images.cuda(), masks.cuda().long()
+            print(f" - {batch_idx=}")
+            images, masks = images.to(device), masks.to(device).long()
 
             # Forward pass
+            print("PROC")
             outputs = model(images)
+            print("LOSS")
             loss = criterion(outputs, masks.squeeze(1))
 
             # Backpropagation and optimization
+            print("Z GRAD")
             optimizer.zero_grad()
+            print("BACKWD")
             loss.backward()
+            print("STEP")
             optimizer.step()
 
             running_loss += loss.item()
 
-            if batch_idx % 10 == 9:  # Print every 10 batches
+            if batch_idx % 10 == 0:
                 print(
                     f"Epoch [{epoch+1}/{epochs}] Batch [{batch_idx+1}/{len(dataloader)}] Loss: {running_loss/10:.4f}"
                 )
@@ -63,14 +74,17 @@ def main():
     logging.info("Creating model...")
     model = FeynmanModel(3).cuda()
 
-    # device_type = "cuda" if torch.cuda.is_available() else "cpu"
-    # logging.debug(f"Doing training on device type '{device_type}'!")
-    # device = torch.device(device_type)
-    #
-    # model.to(device)
+    device_type = "cuda" if torch.cuda.is_available() else "cpu"
+    # device_type = "cpu"
+    logging.debug(f"Doing training on device type '{device_type}'!")
+    device = torch.device(device_type)
+
+    model = model.to(device)
 
     logging.info("START TRAINING!")
-    train_model(model, dataset_dir="./dataset/train/", epochs=10, batch_size=16)
+    train_model(
+        model, dataset_dir="./dataset/train/", epochs=10, batch_size=2, device=device
+    )
     logging.info("END TRAINING!")
 
 

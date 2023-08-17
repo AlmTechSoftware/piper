@@ -26,6 +26,13 @@ class COCODataset(Dataset):
                 ),
             ]
         )
+
+        self.trafos = transforms.Compose(
+            [
+                transforms.Grayscale(num_output_channels=3),
+                transforms.ToTensor(),
+            ]
+        )
         self.coco_data = self.load_coco_data()
 
     def load_coco_data(self):
@@ -50,5 +57,8 @@ class COCODataset(Dataset):
         for ann_id in ann_ids:
             mask += self.coco_data.annToMask(self.coco_data.anns[ann_id])
         mask = torch.tensor(mask).unsqueeze(0).float() / 255.0
+        mask = self.trafos(mask.numpy())
+
+        print("MASK", mask, mask.size())
 
         return image, mask
