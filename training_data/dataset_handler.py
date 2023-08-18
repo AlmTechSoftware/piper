@@ -1,5 +1,4 @@
 import os
-from typing import Tuple
 import torch
 import numpy as np
 from torch.utils.data import Dataset
@@ -13,12 +12,10 @@ class COCODataset(Dataset):
     def __init__(
         self,
         dataset_dir: str,
-        img_size: Tuple[int, int] = (640, 640),
     ):
         self.dataset_dir = dataset_dir
         self.transform = transforms.Compose(
             [
-                transforms.Resize(img_size),
                 transforms.ToTensor(),
                 transforms.Normalize(
                     # NOTE: ImageNet

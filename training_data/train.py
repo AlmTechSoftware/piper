@@ -30,6 +30,7 @@ def train_model(
     dataset_dir: str,
     epochs: int = 10,
     batch_size: int = 32,
+    device: torch.device = torch.device("cpu"),
 ):
     criterion = nn.BCELoss()
     optimizer = optim.Adam(model.parameters(), lr=0.001)
@@ -43,7 +44,7 @@ def train_model(
 
         for batch_idx, (images, masks) in enumerate(dataloader):
             print(f"Epoch [{epoch+1}/{epochs}] Batch [{batch_idx+1}/{len(dataloader)}]")
-            # images, masks = images.to(device), masks.to(device).float()
+            images, masks = images.to(device), masks.to(device).float()
 
             # Forward pass
             outputs = model(images)
@@ -73,7 +74,7 @@ def main():
     model = model.to(device)
 
     logging.info("START TRAINING!")
-    train_model(model, dataset_dir="./dataset/train/", epochs=10, batch_size=2)
+    train_model(model, dataset_dir="./dataset/train/", epochs=10, batch_size=2, device=device)
     logging.info("END TRAINING!")
 
 
