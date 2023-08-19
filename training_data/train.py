@@ -74,7 +74,9 @@ def main():
     model = model.to(device)
 
     logging.info("START TRAINING!")
-    train_model(model, dataset_dir="./dataset/train/", epochs=10, batch_size=2, device=device)
+    train_model(
+        model, dataset_dir="./dataset/train/", epochs=10, batch_size=2, device=device
+    )
     logging.info("END TRAINING!")
 
 
