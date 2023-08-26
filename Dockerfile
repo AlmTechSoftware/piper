@@ -30,7 +30,7 @@ COPY requirements.txt .
 COPY libs libs/
 
 # Install the libraries
-RUN pip3 install -r requirements.txt
+RUN pip3 install --break-system-packages -r requirements.txt
 
 # Install the custom libraries
 RUN for directory in libs/*; do \
