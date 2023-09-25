@@ -61,8 +61,6 @@ def remove_perspective(frame: Any, points: list) -> Tuple[int, int]:
 
 def canvas_contour(
     canvas_frame: Any,
-    board_color: Tuple[int, int, int] = (100, 100, 100),
-    epsilon: int = 20,
 ) -> Tuple[Any, List[Any]]:
     """
     A function for getting the contours.
