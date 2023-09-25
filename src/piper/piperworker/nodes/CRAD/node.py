@@ -83,27 +83,3 @@ def canvas_contour(
     )
 
     return canvas_frame, contours
-
-
-def canvas_render(
-    canvas_frame: Any,
-    contours: List[Any],
-    bg_color: Tuple[int, int, int] = (0, 0, 0),
-    pen_color: Tuple[int, int, int] = (255, 255, 255),
-) -> Any:
-    """
-    This function takes the last bit of information and renderes
-    the new canvas board.
-    """
-
-    # Make an empty frame
-    rendered_frame = np.zeros(canvas_frame.shape[:3], np.uint8)
-
-    # Apply the bg color
-    rendered_frame[::] = bg_color
-
-    # Approx contours
-    for cnt in contours:
-        cv2.drawContours(rendered_frame, [cnt], -1, pen_color, 1)
-
-    return rendered_frame
